@@ -18,10 +18,10 @@ def make_environment_agent(env_name, blurred_bool = False, type_agent = "Keyboar
     agent_state = (env.get_hero_zone(), 0)
     grid_size = env.world.grid_size
     
-    if not hasattr(env.action_space, 'n'):
-        raise Exception('Keyboard agent only supports discrete action spaces')
-
     if type_agent == "KeyboardAgent":
+        if not hasattr(env.action_space, 'n'):
+            raise Exception('Keyboard agent only supports discrete action spaces')
+    
         from gridenvs.keyboard_controller import Controls
         agent = KeyboardAgent(env, controls={**Controls.Arrows, **Controls.KeyPad})
 

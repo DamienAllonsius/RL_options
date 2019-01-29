@@ -58,7 +58,7 @@ class AgentOption():
                 return self.explore_option
     
             # action are available : find the best and execute or explore
-            elif np.random.rand() < PROBABILTY_EXPLORE * (1 - t / ITERATION_LEARNING) ** 2: # in this case go explore
+            elif np.random.rand() < PROBABILITY_EXPLORE_FOR_AGENTOPTION * (1 - t / ITERATION_LEARNING) ** 2: # in this case go explore
                 self.reset_explore_option()
                 return self.explore_option
         
@@ -70,6 +70,7 @@ class AgentOption():
                     best_option.position = best_option.get_position(self.position)
                     best_option.reward = 0
                     return best_option
+                
                 else:
                     best_option.position = best_option.get_position(self.position)
                     best_option.reward = 0
@@ -89,13 +90,12 @@ class AgentOption():
             
         else:
             total_reward = self.compute_total_reward(new_state[1])
-            self.reward += option.reward
+            self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, option, total_reward)
             self.state = new_state
             self.position = new_position
             
     def update_q_function_options(self, new_state, option, reward):            
-    
         # if the state or the action already exists, those 2 command will do nothing
         self.q.add_state(new_state)
         self.q.add_action_to_state(self.state, Option(self.position, self.state, new_state, self.grid_size_option, self.play), reward)
@@ -106,7 +106,9 @@ class AgentOption():
     def record_reward(self, t):
         """
         save the reward in a file following this pattern:
-        iteration reward
+        iteration_1 reward_1
+        iteration_2 reward_2
+        iteration_3 reward_3
         """
         self.save_data.record_data(t, self.reward)
 
@@ -189,7 +191,7 @@ class QAgent(object):
             best_action = np.argmax(self.q[self.position])
 
         else:
-            if np.random.rand() < PROBABILTY_EXPLORE  * (1 - t / ITERATION_LEARNING):
+            if np.random.rand() < PROBABILITY_EXPLORE_FOR_QAGENT  * (1 - t / ITERATION_LEARNING):
                 best_action = np.random.randint(self.number_actions)
             
             else:
@@ -200,7 +202,9 @@ class QAgent(object):
     def record_reward(self, t):
         """
         save the reward in a file following this pattern:
-        iteration reward
+        iteration_1 reward_1
+        iteration_2 reward_2
+        iteration_3 reward_3
         """
         self.save_data.record_data(t, self.reward)
         

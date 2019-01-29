@@ -7,13 +7,14 @@ from agent.q import Q
 import time
 import numpy as np
 from variables import *
+
 class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
     """
     def __init__(self, position, initial_state, terminal_state, grid_size_option, play):
         """
-        here grid_size_option is the size of the zone ! 
+        here grid_size_option is the size of the zone 
         """
         self.play = play
         self.grid_size_option = grid_size_option
@@ -24,7 +25,7 @@ class Option(object):
         self.position = self.get_position(position)
         self.initial_state = initial_state
         self.terminal_state = terminal_state
-        self.reward = 0
+        self.reward_for_agent = 0
 
     def __repr__(self):
         return "".join(["Option(", str(self.initial_state), ",", str(self.terminal_state), ")"])
@@ -47,7 +48,6 @@ class Option(object):
     
     def get_position(self, point):
         """
-        this function encodes the state from a point to a number
         point is the current position on the whole grid.
         point is projected into the zone
         """
@@ -71,7 +71,7 @@ class Option(object):
             max_value_action = np.max(self.q[encoded_new_position])
             total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
-            self.reward += total_reward
+            self.reward_for_agent += total_reward
             if end_option:
                 if new_state == self.terminal_state:
                     total_reward += REWARD_END_OPTION
@@ -89,7 +89,7 @@ class Option(object):
             best_action = np.argmax(self.q[self.position])
 
         else:
-            if np.random.rand() < PROBABILTY_EXPLORE_IN_OPTION:
+            if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
                 best_action = np.random.randint(self.number_actions)
             
             else:
@@ -103,7 +103,7 @@ class OptionExplore(object):
     """
     def __init__(self, initial_state):
         self.initial_state = initial_state
-        self.reward = 0
+        self.reward_for_agent = 0
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)
@@ -127,5 +127,5 @@ class OptionExplore(object):
         return new_state != self.initial_state
 
     def update_option(self, reward, new_position, new_state, action):
-        self.reward += PENALTY_OPTION_ACTION
+        self.reward_for_agent += PENALTY_OPTION_ACTION
         return self.check_end_option(new_state)
