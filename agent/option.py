@@ -34,7 +34,7 @@ class Option(object):
         return "option from " + str(self.initial_state) + " to " + str(self.terminal_state)
 
     def __eq__(self, other_option):
-        if type(other_option).__name__ == "Option":
+        if type(other_option).__name__ == self.__class__.__name__:
             return (self.initial_state == other_option.initial_state) and (self.terminal_state == other_option.terminal_state)
         
         else:
@@ -83,7 +83,7 @@ class Option(object):
             self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)
             self.position = encoded_new_position
             return end_option
-        
+      
     def act(self):
         if self.play:
             best_action = np.argmax(self.q[self.position])
@@ -109,7 +109,7 @@ class OptionExplore(object):
         return "explore option from " + str(self.initial_state)
 
     def __eq__(self, other):
-        return type(other).__name__ == "OptionExplore"
+        return type(other).__name__ == self.__class__.__name__
 
     def __hash__(self):
         return hash("explore")
@@ -129,3 +129,17 @@ class OptionExplore(object):
     def update_option(self, reward, new_position, new_state, action):
         self.reward_for_agent += PENALTY_OPTION_ACTION
         return self.check_end_option(new_state)
+
+
+class OptionExploreQ(Option):
+    
+    def update_option(self, reward, new_position, new_state, action):
+        encoded_new_position = self.get_position(new_position)
+        encoded_action = self.encode_direction(action)
+        max_value_action = np.max(self.q[self.position])
+        total_reward = reward + PENALTY_OPTION_ACTION
+        end_option = self.check_end_option(new_state)
+        self.reward_for_agent += total_reward
+        self.q[self.position, encoded_action] += total_reward
+        self.position = encoded_new_position
+        return end_option

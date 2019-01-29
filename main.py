@@ -63,7 +63,7 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
         running_option = False
         #start the loop
         while not(done):
-            if True:
+            if play:
                 #time.sleep(.3)
                 env.render_scaled()
 
@@ -130,7 +130,7 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
         #start the loop
         while not(done):
             if play:
-                time.sleep(.2)
+                #time.sleep(.2)
                 env.render_scaled()
                 
             action = agent.act(t)

@@ -4,7 +4,7 @@ from gridenvs.keyboard_controller import Controls, Key
 from gridenvs.utils import Direction, Point
 import numpy as np
 import time
-from agent.option import Option, OptionExplore
+from agent.option import Option, OptionExplore, OptionExploreQ
 from agent.q import Q
 from variables import *
 from data.save import SaveData
@@ -22,7 +22,7 @@ class AgentOption():
         self.position = position
         self.reward = 0
         if not(play):
-            self.explore_option = OptionExplore(initial_state = self.state) # special options
+            self.explore_option = OptionExploreQ(self.position, self.state, self.state, self.grid_size_option, False) # special options
 
     def make_save_data(self, seed):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)

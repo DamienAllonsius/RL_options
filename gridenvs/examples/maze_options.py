@@ -54,7 +54,9 @@ def key_door_walls(key_reward = False, **kwargs):
                 "WW..W.........WW",
                 "WW.....WW.....WW",
                 "WWWWWWWWWWWWWWWW"]
+   
     """
+    
     init_map = ["WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
                 "W......W......W........W.......W",
                 "W......W......W........W.......W",
@@ -86,6 +88,7 @@ def key_door_walls(key_reward = False, **kwargs):
                 "W.............W................W",
                 "W.............W................W",
                 "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"]
+    
     """
     init_map = ["WWWWWWWWWWWWWWWW",
                 "WWWWWWWWWWWWWWWW",
@@ -103,7 +106,8 @@ def key_door_walls(key_reward = False, **kwargs):
                 "WW............WW",
                 "WW.....W..K...WW",
                 "WWWWWWWWWWWWWWWW"]
-    
+    """
+    """
     init_map = ["WWWWWWWW",
                 "W..H...W",
                 "WD.....W",
