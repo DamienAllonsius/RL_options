@@ -7,13 +7,7 @@ from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import * 
-"""
-TODO : problem with escape for closing the environment, problem with close().
-(Look at the stashed version :
-stash@{0}: WIP on branch_options: 3f712e7 some small changes
-to change the agent files in order to delete environment in their list of attributes.)
-"""
-verb = True
+
 def make_environment_agent(env_name, blurred_bool = False, type_agent = "KeyboardAgent", number_gray_colors = NUMBER_GRAY_COLORS, zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y):
     env = gym.make(env_name)
     env.reset()
@@ -43,7 +37,7 @@ def make_environment_agent(env_name, blurred_bool = False, type_agent = "Keyboar
     
     return env, agent
 
-def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING):
+def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
     """
     0/ The agent chooses an option
     1/ The option makes the action
@@ -52,8 +46,9 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING):
     3/ We update the option's parameters and we get end_option which is True if only if the option is done.
     4/ The agent update his info about the option
     """
-    np.random.seed(0)
+    np.random.seed(seed)
     agent.play = play
+    agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -68,13 +63,13 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING):
         running_option = False
         #start the loop
         while not(done):
-            if play:
-                time.sleep(.3)
+            if True:
+                #time.sleep(.3)
                 env.render_scaled()
 
             # if no option acting, choose an option
             if not(running_option):
-                option = agent.choose_option()
+                option = agent.choose_option(t)
                 #print(agent.q)
                 running_option = True
             
@@ -85,10 +80,27 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING):
             end_option = option.update_option(reward, new_position, new_state, action)
             # if the option ended then update the agent's data
             if done:
+                # The agent found the door or hit a wall
+                if new_state[1] == 2:
+                    # In this case the agent found the door
+                    running_option = False
+                    agent.update_agent(new_position, new_state, option)
+            else:
+                if end_option:
+                    # In this case the option ended normally and the process continues
+                    running_option = False
+                    agent.update_agent(new_position, new_state, option)
+            """
+            if done:
                 running_option = False
+                
             if end_option and (not(done) or new_state[1] == 2):
                 running_option = False
                 agent.update_agent(new_position, new_state, option)
+            """
+
+        if(not(play)):
+            agent.record_reward(t)
     if play:
         env.render_scaled()
         time.sleep(1)
@@ -97,13 +109,14 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING):
         return agent
 
 
-def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING):
+def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
     """
     play Q learning
     """
-    np.random.seed(0)
+    np.random.seed(seed)
     initial_agent_position = INITIAL_AGENT_POSITION
     agent.play = play
+    agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -114,18 +127,20 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING):
         env.reset()
         agent.reset(initial_agent_position)
         done = False
-        running_option = False
         #start the loop
         while not(done):
             if play:
                 time.sleep(.2)
                 env.render_scaled()
                 
-            action = agent.act()
+            action = agent.act(t)
             _, reward, done, info = env.step(action)
             new_position = info['position']
             new_state_id = info['state_id']
             agent.update(reward, new_position, action, new_state_id)
+
+        if(not(play)):
+            agent.record_reward(t)
 
     if play:
         env.render_scaled()
@@ -163,20 +178,22 @@ def play_keyboard(env, agent):
 
 type_agent_list = ["KeyboardAgent", "AgentOption", "QAgent"]
 env_name = 'GE_MazeOptions-v0' if len(sys.argv)<2 else sys.argv[1] #default environment or input from command line 'GE_Montezuma-v1'
-type_agent = type_agent_list[2]
+type_agent = type_agent_list[1]
 
-env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
-INITIAL_AGENT_POSITION = agent.position
+for seed in range(NUMBER_SEEDS):
+    env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
+    INITIAL_AGENT_POSITION = agent.position
+    
+    if type_agent == type_agent_list[0]:
+        play_keyboard(env, agent)
 
-if type_agent == type_agent_list[0]:
-    play_keyboard(env, agent)
-
-elif type_agent == type_agent_list[1]:
-    INITIAL_AGENT_STATE = agent.state
-    agent_learned = learn_or_play_options(env, agent, iteration = ITERATION_LEARNING, play = False)
-    learn_or_play_options(env, agent_learned, play = True)
-
-elif type_agent == type_agent_list[2]:
-    agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False)
-    learn_or_play(env, agent_learned, play = True)
- 
+    elif type_agent == type_agent_list[1]:
+        INITIAL_AGENT_STATE = agent.state
+        agent_learned = learn_or_play_options(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
+        #learn_or_play_options(env, agent_learned, play = True)
+        
+    elif type_agent == type_agent_list[2]:
+        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
+    #learn_or_play(env, agent_learned, play = True)
+    
+agent_learned.save_data.plot_data()

@@ -23,7 +23,8 @@ class Option(object):
         self.cardinal = Direction.cardinal()
         self.position = self.get_position(position)
         self.initial_state = initial_state
-        self.terminal_state = terminal_state       
+        self.terminal_state = terminal_state
+        self.reward = 0
 
     def __repr__(self):
         return "".join(["Option(", str(self.initial_state), ",", str(self.terminal_state), ")"])
@@ -70,13 +71,14 @@ class Option(object):
             max_value_action = np.max(self.q[encoded_new_position])
             total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
+            self.reward += total_reward
             if end_option:
                 if new_state == self.terminal_state:
                     total_reward += REWARD_END_OPTION
                     
                 else:
                     total_reward += PENALTY_END_OPTION
-                    
+
             self.q[self.position, encoded_action] *= (1 - LEARNING_RATE)
             self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)
             self.position = encoded_new_position
@@ -101,6 +103,7 @@ class OptionExplore(object):
     """
     def __init__(self, initial_state):
         self.initial_state = initial_state
+        self.reward = 0
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)
@@ -124,4 +127,5 @@ class OptionExplore(object):
         return new_state != self.initial_state
 
     def update_option(self, reward, new_position, new_state, action):
+        self.reward += PENALTY_OPTION_ACTION
         return self.check_end_option(new_state)

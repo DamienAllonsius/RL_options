@@ -7,6 +7,7 @@ import time
 from agent.option import Option, OptionExplore
 from agent.q import Q
 from variables import *
+from data.save import SaveData
 
 class AgentOption(): 
 
@@ -19,21 +20,27 @@ class AgentOption():
         self.state = state
         self.q = Q(self.state)
         self.position = position
+        self.reward = 0
         if not(play):
             self.explore_option = OptionExplore(initial_state = self.state) # special options
 
+    def make_save_data(self, seed):
+        self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
+        
     def reset_explore_option(self):
+        self.explore_option.reward = 0
         self.explore_option.initial_state = self.state
         
     def reset(self, initial_agent_position, initial_agent_state):
         """
         Same as __init__ but the q function is preserved 
         """
+        self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
         self.reset_explore_option()
 
-    def choose_option(self):
+    def choose_option(self, t):
         """
         if no option : explore
         else flip a coin, then take the best or explore
@@ -51,7 +58,7 @@ class AgentOption():
                 return self.explore_option
     
             # action are available : find the best and execute or explore
-            elif np.random.rand() < PROBABILTY_EXPLORE: # in this case go explore
+            elif np.random.rand() < PROBABILTY_EXPLORE * (1 - t / ITERATION_LEARNING) ** 2: # in this case go explore
                 self.reset_explore_option()
                 return self.explore_option
         
@@ -61,9 +68,11 @@ class AgentOption():
                 if best_reward == 0:
                     best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
                     best_option.position = best_option.get_position(self.position)
+                    best_option.reward = 0
                     return best_option
                 else:
                     best_option.position = best_option.get_position(self.position)
+                    best_option.reward = 0
                     return best_option
                         
     def compute_total_reward(self, new_state_id):
@@ -80,6 +89,7 @@ class AgentOption():
             
         else:
             total_reward = self.compute_total_reward(new_state[1])
+            self.reward += option.reward
             self.update_q_function_options(new_state, option, total_reward)
             self.state = new_state
             self.position = new_position
@@ -92,6 +102,13 @@ class AgentOption():
 
         if option != self.explore_option:
             self.q.update_q_dict(self.state, new_state, option, reward)
+
+    def record_reward(self, t):
+        """
+        save the reward in a file following this pattern:
+        iteration reward
+        """
+        self.save_data.record_data(t, self.reward)
 
 class KeyboardAgent(object):
     def __init__(self, env, controls={**Controls.Arrows, **Controls.KeyPad}):
@@ -132,7 +149,11 @@ class QAgent(object):
         self.cardinal = Direction.cardinal()
         self.state_id = 0
         self.position = self.encode_position(position)
+        self.reward = 0
 
+    def make_save_data(self, seed):
+        self.save_data = SaveData("data/QAgent/data_reward_" + self.__class__.__name__, seed)
+       
     def encode_position(self, point):
         """
         this function encodes the state from a point to a number
@@ -149,30 +170,38 @@ class QAgent(object):
         return self.cardinal.index(direction)
         
     def reset(self, initial_position):
+        self.reward = 0
         self.position = initial_position
 
     def update(self, reward, new_position, action, new_state_id):
         encoded_action = self.encode_direction(action)
         encoded_position = self.encode_position(new_position)
         max_value_action = np.max(self.q[encoded_position])
-        total_reward = reward - REWARD_ACTION
+        total_reward = reward + PENALTY_ACTION
+        self.reward += total_reward
         self.q[self.position, encoded_action] *= (1 - LEARNING_RATE)
         self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)
         self.position = encoded_position
         self.state_id = new_state_id
         
-    def act(self):
+    def act(self, t):
         if self.play:
             best_action = np.argmax(self.q[self.position])
 
         else:
-            if np.random.rand() < PROBABILTY_EXPLORE:
+            if np.random.rand() < PROBABILTY_EXPLORE  * (1 - t / ITERATION_LEARNING):
                 best_action = np.random.randint(self.number_actions)
             
             else:
                 best_action = np.argmax(self.q[self.position])
             
         return self.cardinal[best_action]
+
+    def record_reward(self, t):
+        """
+        save the reward in a file following this pattern:
+        iteration reward
+        """
+        self.save_data.record_data(t, self.reward)
         
 
-    
