@@ -15,6 +15,7 @@ class AgentOption():
         """
         TODO : replace state by a dictionary : self.state = {'zone' : zone, 'state_id' = 0}
         """
+        self.last_action = 0
         self.play = play
         self.grid_size_option = grid_size_option
         self.state = state
@@ -22,7 +23,7 @@ class AgentOption():
         self.position = position
         self.reward = 0
         if not(play):
-            self.explore_option = OptionExploreQ(self.position, self.state, self.state, self.grid_size_option, False) # special options
+            self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
 
     def make_save_data(self, seed):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
@@ -30,6 +31,17 @@ class AgentOption():
     def reset_explore_option(self):
         self.explore_option.reward = 0
         self.explore_option.initial_state = self.state
+        if type(self.explore_option).__name__ == "OptionExploreQ":
+            self.explore_option.position = self.explore_option.get_position(self.position)
+            self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
+            # if this state is explored for the first time : make a new q function full of zeros
+            # and set the exploration_terminated boolean for this state to False
+            try:
+                self.explore_option.q[self.state]
+            except:
+                self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
+                self.explore_option.exploration_terminated.update({self.state : False})
+        
         
     def reset(self, initial_agent_position, initial_agent_state):
         """
@@ -57,8 +69,8 @@ class AgentOption():
                 self.reset_explore_option()
                 return self.explore_option
     
-            # action are available : find the best and execute or explore
-            elif np.random.rand() < PROBABILITY_EXPLORE_FOR_AGENTOPTION * (1 - t / ITERATION_LEARNING) ** 2: # in this case go explore
+            # options are available : if the exploration is not done then continue exploring
+            elif not(self.explore_option.exploration_terminated[self.state]):
                 self.reset_explore_option()
                 return self.explore_option
         
@@ -83,12 +95,13 @@ class AgentOption():
 
         return total_reward
         
-    def update_agent(self, new_position, new_state, option):
+    def update_agent(self, new_position, new_state, option, action):
         if self.play:
             self.state = new_state
             self.position = new_position
             
         else:
+            self.last_action = Direction.cardinal().index(action)
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, option, total_reward)

@@ -63,8 +63,8 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
         running_option = False
         #start the loop
         while not(done):
-            if play:
-                #time.sleep(.3)
+            if t>ITERATION_LEARNING * 1 / 10:
+                #time.sleep(0.3)
                 env.render_scaled()
 
             # if no option acting, choose an option
@@ -84,12 +84,12 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
                 if new_state[1] == 2:
                     # In this case the agent found the door
                     running_option = False
-                    agent.update_agent(new_position, new_state, option)
+                    agent.update_agent(new_position, new_state, option, action)
             else:
                 if end_option:
                     # In this case the option ended normally and the process continues
                     running_option = False
-                    agent.update_agent(new_position, new_state, option)
+                    agent.update_agent(new_position, new_state, option, action)
             """
             if done:
                 running_option = False

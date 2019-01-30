@@ -109,12 +109,12 @@ def key_door_walls(key_reward = False, **kwargs):
     """
     """
     init_map = ["WWWWWWWW",
+                "W......W",
+                "W......W",
                 "W..H...W",
-                "WD.....W",
                 "W......W",
                 "W......W",
                 "W......W",
-                "W...K..W",
                 "WWWWWWWW"]
    
     """

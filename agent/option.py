@@ -132,14 +132,68 @@ class OptionExplore(object):
 
 
 class OptionExploreQ(Option):
+
+    def __init__(self, position, initial_state, grid_size_option, last_action):
+        self.grid_size_option = grid_size_option
+        self.number_state = grid_size_option.x * grid_size_option.y
+        self.number_actions = len(Direction.cardinal())
+        self.cardinal = self.get_cardinal(last_action)
+        self.position = self.get_position(position)
+        self.initial_state = initial_state
+        self.reward_for_agent = 0
+        self.q = {}
+        self.exploration_terminated = {}
+
+    def __eq__(self, other):
+        return type(other).__name__ == self.__class__.__name__
+
+    def get_cardinal(self, permutation = 0):
+        """
+        We want to optimize the exploration by starting exploring in the same direction which we entered in the zone
+        when permutation is
+        _ 0 (= North) -> cardinal = [North, East, West, South]
+        _ 1 (= East) -> cardinal = [East, South, North, West]
+        _ 2 (= South) -> cardinal = [South, East, West, North]
+        _ 3 (= West) -> cardinal = [West, North, South, East]
+
+        this can be obtained by permuting [North, East, South, West] with a cycle
+        and then transposing the last two elements of the list.
+        """
+        cardinal = Direction.cardinal()
+        permutated_cardinal = []
+        for k in range(self.number_actions):
+            permutated_cardinal.append(cardinal[(k + permutation) % self.number_actions])
+
+        permutated_cardinal[3], permutated_cardinal[2] = permutated_cardinal[2], permutated_cardinal[3]
+        return permutated_cardinal
     
     def update_option(self, reward, new_position, new_state, action):
+        
         encoded_new_position = self.get_position(new_position)
         encoded_action = self.encode_direction(action)
-        max_value_action = np.max(self.q[self.position])
-        total_reward = reward + PENALTY_OPTION_ACTION
+        max_value_action = np.max(self.q[self.initial_state][self.position])
+        total_reward = PENALTY_OPTION_ACTION + reward
         end_option = self.check_end_option(new_state)
-        self.reward_for_agent += total_reward
-        self.q[self.position, encoded_action] += total_reward
-        self.position = encoded_new_position
+        self.reward_for_agent += PENALTY_OPTION_ACTION
+        self.q[self.initial_state][self.position, encoded_action] += total_reward
+        self.set_exploration_terminated()
+        self.position = encoded_new_position       
         return end_option
+
+    def set_exploration_terminated(self):
+        """
+        the exploration is terminated if for ALL states, the actions are : 
+        - either [0, 0, 0, 0] (this would correspond to a wall for example)
+        - either [-1, -3, -4, -11] (all the actions have been tried)
+        """
+        for actions in self.q[self.initial_state]:
+            terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
+            if not(terminated):
+                self.exploration_terminated[self.initial_state] = False
+                return
+        self.exploration_terminated[self.initial_state] = True
+
+    def act(self):
+        current_q_function = self.q[self.initial_state]
+        max_value_action = np.argmax(current_q_function[self.position])
+        return self.cardinal[max_value_action]
