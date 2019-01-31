@@ -22,7 +22,7 @@ class GridworldEnv(gym.Env):
     GAME_NAME = "Gridworld environment"
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, n_actions, pixel_size=(84,84), obs_type="image", zone_size_x = 3, zone_size_y = 3, blurred = False, number_gray_colors = 0):
+    def __init__(self, n_actions, pixel_size=(84,84), obs_type="image", blurred = False, number_gray_colors = 0):
         self.pixel_size = pixel_size
         self.viewer = None
 
@@ -37,8 +37,6 @@ class GridworldEnv(gym.Env):
         self.observation_space = Box(0, 255, shape=self.pixel_size+(3,))
         #The world is the grid which directly comes from the matrix representation of init_map (examples of gridenvs)
         self.world = self.create_world()
-        # The grid is cut into several zones of size zone_size_x X zone_size_y
-        self.set_zone_size(zone_size_x, zone_size_y)
         # Is the world blurred ?
         self.blurred = blurred
         self.number_gray_colors = number_gray_colors

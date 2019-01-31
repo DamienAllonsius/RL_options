@@ -73,13 +73,11 @@ class AgentOption():
             # options are available : if the exploration is not done then continue exploring
             elif not(self.explore_option.exploration_terminated[self.state]):
                 self.reset_explore_option()
-                print("Explore")
                 return self.explore_option
         
             # in this case find the best option
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
-                print("Navigate" + str(best_option))
                 if best_reward == 0:
                     best_reward, best_option = self.q_explore.find_best_action(self.state)#np.random.choice(list(self.q.q_dict[self.state].keys()))
                     best_option.position = best_option.get_position(self.position)
@@ -97,14 +95,34 @@ class AgentOption():
             self.position = new_position
             
         else:
-            print(self.q_explore)
             self.last_action = Direction.cardinal().index(action)
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, option, total_reward)
             self.state = new_state
             self.position = new_position
-
+            
+    def update_q_function_options(self, new_state, option, reward):
+        """
+        only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
+        """
+        if self.no_return_update(new_state):
+            action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+            # if the state and the action already exist, those 2 command will do nothing
+            self.q.update_q_dict_action_space(self.state, new_state, action, reward)
+            self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
+            
+            if option != self.explore_option:
+                self.q.update_q_dict_value(self.state, option, reward, new_state)
+                reward_q_explore = 0
+                if self.q_explore.q_dict[new_state] == {}:
+                    reward_q_explore = REWARD_AGENTOPTION_ACTION_EXPLORE
+                    
+                else:
+                    reward_q_explore = PENALTY_AGENTOPTION_ACTION_OPTION
+                    
+                self.q_explore.update_q_dict_value(self.state, option, reward_q_explore, new_state)
+                
     def no_return_update(self, new_state):
         """
         (no return option)
@@ -118,21 +136,7 @@ class AgentOption():
                     return False
 
         return True
-
-            
-    def update_q_function_options(self, new_state, option, reward):
-        """
-        only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
-        """
-        if self.no_return_update(new_state):
-            action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
-            # if the state and the action already exist, those 2 command will do nothing
-            self.q.update_q_dict_action_space(self.state, new_state, action, reward)
-            self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
-            if option != self.explore_option:
-                self.q.update_q_dict_value(self.state, option, reward, new_state)
-                self.q_explore.update_q_dict_value(self.state, option, PENALTY_AGENT_ACTION_EXPLORE)
-            
+    
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION
         if self.state[1] < new_state_id: # we get an item from the world

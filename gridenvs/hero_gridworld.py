@@ -31,15 +31,18 @@ class HeroGridEnv(GridworldEnv):
     def _reset(self):
         self.game_state['hero'] = self.reset_world()
         assert self.game_state['hero'] is not None, "Reset world should return hero object."
-        self.game_state['state_id'] = 0
-        self.game_state['moves'] = 0
-        self.game_state['done'] = False
         # The zone is a region of the state space. For the moment we take squares of size zone_size.
         # The location of the zones are given by a Point, which contains its coordinates.
         self.update_zone()
+        self.game_state['state_id'] = 0
+        self.game_state['moves'] = 0
+        self.game_state['done'] = False
         return self.generate_observation(self.world)
 
     def move(self, obj, direction):
+        """
+        return True ifof no collision
+        """
         if direction:
             dx, dy = direction.value
             bb = obj.bounding_box
@@ -59,7 +62,10 @@ class HeroGridEnv(GridworldEnv):
         return True
 
     def move_hero(self, direction):
-        return self.move(self.game_state['hero'], direction)
+        collision = self.move(self.game_state['hero'], direction)
+        if collision:
+            self.update_zone()
+        return collision
 
     def get_hero_position(self):
         return self.game_state['hero'].pos
@@ -85,7 +91,6 @@ class HeroGridEnv(GridworldEnv):
                 raise Exception("Action %s not in ACTION_MAP. ACTION_MAP: %s" % (action, str(self.ACTION_MAP)))
 
         self.move_hero(action)
-        self.update_zone()
         self.game_state['moves'] += 1
         r, self.game_state['done'], info_dict = self.update_world()
         return r, self.game_state['done'], info_dict

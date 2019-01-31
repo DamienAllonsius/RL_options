@@ -168,7 +168,6 @@ class OptionExploreQ(Option):
         return permutated_cardinal
     
     def update_option(self, reward, new_position, new_state, action):
-        
         encoded_new_position = self.get_position(new_position)
         encoded_action = self.encode_direction(action)
         max_value_action = np.max(self.q[self.initial_state][self.position])
@@ -194,7 +193,8 @@ class OptionExploreQ(Option):
                    self.exploration_terminated[self.initial_state] = False
                    return
             self.exploration_terminated[self.initial_state] = True
-
+            print("exploration done -> state " + str(self.initial_state))
+            
     def act(self):
         current_q_function = self.q[self.initial_state]
         max_value_action = np.argmax(current_q_function[self.position])

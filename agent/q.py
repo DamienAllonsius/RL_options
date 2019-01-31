@@ -102,20 +102,21 @@ class Q(QAbstract):
 
 class QExplore(QAbstract):
 
-    def update_q_dict_value(self, state, action, reward, new_state = None):
+    def update_q_dict_value(self, state, action, reward, new_state):
         """
-        Q learning procedure :
-        Q_{t+1}(current_position, action) =
-        (1- learning_rate) * Q_t(current_position, action)
-        + learning_rate * [reward + max_{actions} Q_(new_position, action)]
+        reward should be : 
+        _ penalty if action = option(a, b)
+        _ reward if action = explore        
         """
         try:
             self.q_dict[state]
         except:
             raise Exception('state cannot be updated since it does not exist')
 
-        self.add_action_to_state(state, action)
-        self.add_state(new_state)
-        self.q_dict[state][action] += reward
+        if self.q_dict[new_state] == {}:
+            max_value_action = 0
+        else:
+            max_value_action, _ = self.find_best_action(new_state)
+        self.q_dict[state][action] *= (1 - LEARNING_RATE)
+        self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
         
-

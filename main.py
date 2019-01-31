@@ -10,10 +10,10 @@ from variables import *
 
 def make_environment_agent(env_name, blurred_bool = False, type_agent = "KeyboardAgent", number_gray_colors = NUMBER_GRAY_COLORS):
     env = gym.make(env_name)
+    env.set_zone_size(ZONE_SIZE_X, ZONE_SIZE_Y)
     env.reset()
     env.blurred = blurred_bool
     env.number_gray_colors = number_gray_colors
-    env.set_zone_size(ZONE_SIZE_X, ZONE_SIZE_Y)
     agent_position = env.get_hero_position()
     agent_state = (env.get_hero_zone(), 0)
     grid_size = env.world.grid_size
@@ -28,7 +28,7 @@ def make_environment_agent(env_name, blurred_bool = False, type_agent = "Keyboar
     elif type_agent == "AgentOption":
         grid_size_option = Point(ZONE_SIZE_X, ZONE_SIZE_Y)
         agent = AgentOption(agent_position, agent_state, False, grid_size_option)
-
+        
     elif type_agent == "QAgent":
         agent = QAgent(agent_position, grid_size, False)
         
@@ -63,9 +63,9 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
         running_option = False
         #start the loop
         while not(done):
-            if t > 1200:
+            if False:
                 env.render_scaled()
-
+                #time.sleep(1)
             # if no option acting, choose an option
             if not(running_option):
                 option = agent.choose_option(t)
@@ -183,12 +183,12 @@ type_agent = type_agent_list[1]
 for seed in range(NUMBER_SEEDS):
     env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
     INITIAL_AGENT_POSITION = agent.position
+    INITIAL_AGENT_STATE = agent.state
     
     if type_agent == type_agent_list[0]:
         play_keyboard(env, agent)
 
     elif type_agent == type_agent_list[1]:
-        INITIAL_AGENT_STATE = agent.state
         agent_learned = learn_or_play_options(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
         #learn_or_play_options(env, agent_learned, play = True)
         
