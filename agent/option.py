@@ -177,7 +177,7 @@ class OptionExploreQ(Option):
         self.reward_for_agent += PENALTY_OPTION_ACTION
         self.q[self.initial_state][self.position, encoded_action] += total_reward
         self.set_exploration_terminated()
-        self.position = encoded_new_position       
+        self.position = encoded_new_position
         return end_option
 
     def set_exploration_terminated(self):

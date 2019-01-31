@@ -5,7 +5,7 @@ from gridenvs.utils import Direction, Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
-from agent.q import Q
+from agent.q import Q, QExplore
 from variables import *
 from data.save import SaveData
 
@@ -20,6 +20,7 @@ class AgentOption():
         self.grid_size_option = grid_size_option
         self.state = state
         self.q = Q(self.state)
+        self.q_explore = QExplore(self.state) # q function to use where there is no best alternative
         self.position = position
         self.reward = 0
         if not(play):
@@ -72,13 +73,15 @@ class AgentOption():
             # options are available : if the exploration is not done then continue exploring
             elif not(self.explore_option.exploration_terminated[self.state]):
                 self.reset_explore_option()
+                print("Explore")
                 return self.explore_option
         
             # in this case find the best option
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
+                print("Navigate" + str(best_option))
                 if best_reward == 0:
-                    best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
+                    best_reward, best_option = self.q_explore.find_best_action(self.state)#np.random.choice(list(self.q.q_dict[self.state].keys()))
                     best_option.position = best_option.get_position(self.position)
                     best_option.reward = 0
                     return best_option
@@ -88,19 +91,13 @@ class AgentOption():
                     best_option.reward = 0
                     return best_option
                         
-    def compute_total_reward(self, new_state_id):
-        total_reward = PENALTY_AGENT_ACTION
-        if self.state[1] < new_state_id: # we get an item from the world
-            total_reward += REWARD_KEY # extra reward for having the key !
-
-        return total_reward
-        
     def update_agent(self, new_position, new_state, option, action):
         if self.play:
             self.state = new_state
             self.position = new_position
             
         else:
+            print(self.q_explore)
             self.last_action = Direction.cardinal().index(action)
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
@@ -110,12 +107,22 @@ class AgentOption():
             
     def update_q_function_options(self, new_state, option, reward):            
         # if the state or the action already exists, those 2 command will do nothing
-        self.q.add_state(new_state)
-        self.q.add_action_to_state(self.state, Option(self.position, self.state, new_state, self.grid_size_option, self.play), reward)
+        action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+        self.q.update_q_dict_action_space(self.state, new_state, action, reward)
+        self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
 
         if option != self.explore_option:
-            self.q.update_q_dict(self.state, new_state, option, reward)
+            self.q.update_q_dict_value(self.state, option, reward, new_state)
+            self.q_explore.update_q_dict_value(self.state, option, PENALTY_AGENT_ACTION_EXPLORE)
 
+    
+    def compute_total_reward(self, new_state_id):
+        total_reward = PENALTY_AGENT_ACTION
+        if self.state[1] < new_state_id: # we get an item from the world
+            total_reward += REWARD_KEY # extra reward for having the key !
+
+        return total_reward
+        
     def record_reward(self, t):
         """
         save the reward in a file following this pattern:

@@ -36,7 +36,7 @@ class HeroGridEnv(GridworldEnv):
         self.game_state['done'] = False
         # The zone is a region of the state space. For the moment we take squares of size zone_size.
         # The location of the zones are given by a Point, which contains its coordinates.
-        self.update_zone(self.game_state['hero'].pos)
+        self.update_zone()
         return self.generate_observation(self.world)
 
     def move(self, obj, direction):
@@ -65,8 +65,13 @@ class HeroGridEnv(GridworldEnv):
         return self.game_state['hero'].pos
 
     def get_hero_zone(self):
-        self.update_zone(self.get_hero_position())
         return self.game_state['zone']
+
+    def update_zone(self):
+        """
+        gives the current zone for the position
+        """
+        self.game_state['zone'] =  Point(self.game_state['hero'].pos.x  // self.zone_size['x'], self.game_state['hero'].pos.y // self.zone_size['y'])
 
     def update_environment(self, action):
         assert not self.game_state['done'], "The environment needs to be reset."
@@ -80,6 +85,7 @@ class HeroGridEnv(GridworldEnv):
                 raise Exception("Action %s not in ACTION_MAP. ACTION_MAP: %s" % (action, str(self.ACTION_MAP)))
 
         self.move_hero(action)
+        self.update_zone()
         self.game_state['moves'] += 1
         r, self.game_state['done'], info_dict = self.update_world()
         return r, self.game_state['done'], info_dict
@@ -99,17 +105,10 @@ class HeroGridEnv(GridworldEnv):
 
         if self.max_moves is not None and self.game_state['moves'] >= self.max_moves:
             end_episode = True
-        self.update_zone(self.game_state['hero'].pos)
         info = {
             'state_id': self.game_state['state_id'], 'zone' : self.game_state['zone'], 'position' : self.game_state['hero'].pos
         }
         return reward, end_episode, info
-
-    def update_zone(self, position):
-        """
-        gives the current zone for the position
-        """
-        self.game_state['zone'] =  Point(position.x  // self.zone_size['x'], position.y // self.zone_size['y'])
 
     def create_world(self):
         """

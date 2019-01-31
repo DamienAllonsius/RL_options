@@ -43,7 +43,7 @@ class GridworldEnv(gym.Env):
         self.blurred = blurred
         self.number_gray_colors = number_gray_colors
 
-    def set_zone_size(self, x,y):
+    def set_zone_size(self, x, y):
         self.zone_size = {'x' : x, 'y' : y}
 
     def create_world(self):

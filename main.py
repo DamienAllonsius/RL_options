@@ -8,12 +8,12 @@ from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import * 
 
-def make_environment_agent(env_name, blurred_bool = False, type_agent = "KeyboardAgent", number_gray_colors = NUMBER_GRAY_COLORS, zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y):
+def make_environment_agent(env_name, blurred_bool = False, type_agent = "KeyboardAgent", number_gray_colors = NUMBER_GRAY_COLORS):
     env = gym.make(env_name)
     env.reset()
     env.blurred = blurred_bool
     env.number_gray_colors = number_gray_colors
-    env.set_zone_size(zone_size_x, zone_size_y)
+    env.set_zone_size(ZONE_SIZE_X, ZONE_SIZE_Y)
     agent_position = env.get_hero_position()
     agent_state = (env.get_hero_zone(), 0)
     grid_size = env.world.grid_size
@@ -26,7 +26,7 @@ def make_environment_agent(env_name, blurred_bool = False, type_agent = "Keyboar
         agent = KeyboardAgent(env, controls={**Controls.Arrows, **Controls.KeyPad})
 
     elif type_agent == "AgentOption":
-        grid_size_option = Point(zone_size_x, zone_size_y)
+        grid_size_option = Point(ZONE_SIZE_X, ZONE_SIZE_Y)
         agent = AgentOption(agent_position, agent_state, False, grid_size_option)
 
     elif type_agent == "QAgent":
@@ -63,8 +63,7 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
         running_option = False
         #start the loop
         while not(done):
-            if t>ITERATION_LEARNING * 1 / 10:
-                #time.sleep(0.3)
+            if t > 1200:
                 env.render_scaled()
 
             # if no option acting, choose an option
@@ -85,6 +84,7 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
                     # In this case the agent found the door
                     running_option = False
                     agent.update_agent(new_position, new_state, option, action)
+
             else:
                 if end_option:
                     # In this case the option ended normally and the process continues

@@ -1,6 +1,6 @@
 from gridenvs.utils import Point, Direction
 from variables import *
-class Q(object):
+class QAbstract(object):
     """ 
     Contains the q value function which maps a state and an action to a value
     q_dict is a dictionary q_dict = {state_* : {action_* : value}}
@@ -71,7 +71,38 @@ class Q(object):
     def is_state(self, state):
         return state in self.q_dict
 
-    def update_q_dict(self, state, new_state, action, reward):
+    def update_q_dict_action_space(self, state, new_state, action, reward):
+        self.add_action_to_state(state, action, reward)
+        self.add_state(new_state)
+
+    def update_q_dict_value(self, state, action, reward, new_state):
+        raise Exception ("Not implemented")
+
+class Q(QAbstract):
+
+    def update_q_dict_value(self, state, action, reward, new_state):
+        """
+        Q learning procedure :
+        Q_{t+1}(current_position, action) =
+        (1- learning_rate) * Q_t(current_position, action)
+        + learning_rate * [reward + max_{actions} Q_(new_position, action)]
+        """
+        try:
+            self.q_dict[state]
+        except:
+            raise Exception('state cannot be updated since it does not exist')
+
+        if self.q_dict[new_state] == {}:
+            max_value_action = 0
+        else:
+            max_value_action, _ = self.find_best_action(new_state)
+        self.q_dict[state][action] *= (1 - LEARNING_RATE)
+        self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
+        
+
+class QExplore(QAbstract):
+
+    def update_q_dict_value(self, state, action, reward, new_state = None):
         """
         Q learning procedure :
         Q_{t+1}(current_position, action) =
@@ -85,10 +116,6 @@ class Q(object):
 
         self.add_action_to_state(state, action)
         self.add_state(new_state)
-        if self.q_dict[new_state] == {}:
-            max_value_action = 0
-        else:
-            max_value_action, _ = self.find_best_action(new_state)
-        self.q_dict[state][action] *= (1 - LEARNING_RATE)
-        self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
+        self.q_dict[state][action] += reward
         
+
