@@ -104,8 +104,8 @@ class AgentOption():
             self.update_q_function_options(new_state, option, total_reward)
             self.state = new_state
             self.position = new_position
-            
-    def update_q_function_options(self, new_state, option, reward):
+
+    def no_return_update(self, new_state):
         """
         (no return option)
             does not add anything if 
@@ -115,16 +115,23 @@ class AgentOption():
         if self.q.is_state(new_state):
             for action in self.q.q_dict[new_state]:
                 if action.terminal_state == self.state:
-                    return
+                    return False
 
-        action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
-        # if the state and the action already exist, those 2 command will do nothing
-        self.q.update_q_dict_action_space(self.state, new_state, action, reward)
-        self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
+        return True
 
-        if option != self.explore_option:
-            self.q.update_q_dict_value(self.state, option, reward, new_state)
-            self.q_explore.update_q_dict_value(self.state, option, PENALTY_AGENT_ACTION_EXPLORE)
+            
+    def update_q_function_options(self, new_state, option, reward):
+        """
+        only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
+        """
+        if self.no_return_update(new_state):
+            action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+            # if the state and the action already exist, those 2 command will do nothing
+            self.q.update_q_dict_action_space(self.state, new_state, action, reward)
+            self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
+            if option != self.explore_option:
+                self.q.update_q_dict_value(self.state, option, reward, new_state)
+                self.q_explore.update_q_dict_value(self.state, option, PENALTY_AGENT_ACTION_EXPLORE)
             
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION

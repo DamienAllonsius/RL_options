@@ -186,12 +186,14 @@ class OptionExploreQ(Option):
         - either [0, 0, 0, 0] (this would correspond to a wall for example)
         - either [-1, -3, -4, -11] (all the actions have been tried)
         """
-        for actions in self.q[self.initial_state]:
-            terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
-            if not(terminated):
-                self.exploration_terminated[self.initial_state] = False
-                return
-        self.exploration_terminated[self.initial_state] = True
+        if not(self.exploration_terminated[self.initial_state]):
+            # change only if it is false. Otherwise leave it at True
+            for actions in self.q[self.initial_state]:
+               terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
+               if not(terminated):
+                   self.exploration_terminated[self.initial_state] = False
+                   return
+            self.exploration_terminated[self.initial_state] = True
 
     def act(self):
         current_q_function = self.q[self.initial_state]
