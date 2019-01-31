@@ -105,17 +105,27 @@ class AgentOption():
             self.state = new_state
             self.position = new_position
             
-    def update_q_function_options(self, new_state, option, reward):            
-        # if the state or the action already exists, those 2 command will do nothing
+    def update_q_function_options(self, new_state, option, reward):
+        """
+        (no return option)
+            does not add anything if 
+            for action in q[option.terminal_state]:
+            action.terminal_state = option.initial_state
+        """
+        if self.q.is_state(new_state):
+            for action in self.q.q_dict[new_state]:
+                if action.terminal_state == self.state:
+                    return
+
         action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+        # if the state and the action already exist, those 2 command will do nothing
         self.q.update_q_dict_action_space(self.state, new_state, action, reward)
         self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
 
         if option != self.explore_option:
             self.q.update_q_dict_value(self.state, option, reward, new_state)
             self.q_explore.update_q_dict_value(self.state, option, PENALTY_AGENT_ACTION_EXPLORE)
-
-    
+            
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION
         if self.state[1] < new_state_id: # we get an item from the world
