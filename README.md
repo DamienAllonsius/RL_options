@@ -8,4 +8,5 @@ To run the experiment, clone this repo and execute `python3 main.py`.
 
 You can change the environment in gridenvs/example/.
 
-### N.B: gridenvs environment is being revised, it will be available soon ! *
+
+
