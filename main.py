@@ -1,4 +1,5 @@
 import sys, time
+sys.path.append('gridenvs')
 import gridenvs.examples  # load example gridworld environments
 import gym
 import numpy as np
