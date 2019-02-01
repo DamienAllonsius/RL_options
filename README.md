@@ -4,7 +4,9 @@ This repo contains an agent which evolves in a gridworld (for the moment) and so
 
 The code is written with `Python 3.6` and uses the environement [gridenvs](https://github.com/aig-upf/gridenvs)
 
-To run the experiment, clone this repo and execute `python3 main.py`.
+To run the experiment, clone this repo and in RL_options folder, clone the repo [gridenvs](https://github.com/aig-upf/gridenvs).
+
+Finally, execute `python3 main.py`.
 
 You can change the environment in gridenvs/example/.
 
