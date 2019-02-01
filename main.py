@@ -79,12 +79,13 @@ def action_options(env, action, t):
                 running_option = False
                 agent.update_agent(new_position, new_state, option, action)
 
-def action(env, action):
-    agent.reset(initial_agent_position)
+def action(env, action, t):
+    agent.reset(INITIAL_AGENT_POSITION)
     done = False
+    display_learning = False
     #start the loop
     while not(done):
-        if play:
+        if display_learning:
             #time.sleep(.2)
             env.render_scaled()
                 
@@ -95,7 +96,7 @@ def action(env, action):
         agent.update(reward, new_position, action, new_state_id)
     
 
-def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
+def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
     
     np.random.seed(seed)
     agent.play = play
@@ -113,7 +114,7 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
             action_options(env, action, t)
             
         elif type(agent).__name__ == "QAgent":
-            action(env, action)
+            action(env, action, t)
       
         if(not(play)):
             agent.record_reward(t)
@@ -128,15 +129,15 @@ def learn_or_play_options(env, agent, play, iteration = ITERATION_LEARNING, seed
 
 
 env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or input from command line 'GE_Montezuma-v1'
-type_agent = "AgentOption"
+type_agent = "QAgent"
 
 for seed in range(NUMBER_SEEDS):
     env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
     INITIAL_AGENT_POSITION = agent.position
-    INITIAL_AGENT_STATE = agent.state
     
     if type_agent == "AgentOption":
-        agent_learned = learn_or_play_options(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
+        INITIAL_AGENT_STATE = agent.state
+        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
         #learn_or_play_options(env, agent_learned, play = True)
         
     elif type_agent == "QAgent":
