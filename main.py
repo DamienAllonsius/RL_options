@@ -26,7 +26,8 @@ def make_environment_agent(env_name, blurred_bool = False, type_agent = "Keyboar
         agent = KeyboardAgent(env, controls={**Controls.Arrows, **Controls.KeyPad})
 
     elif type_agent == "AgentOption":
-        grid_size_option = Point(ZONE_SIZE_X, ZONE_SIZE_Y)
+        grid_size_option = Point(ZONE_SIZE_X, ZONE_SIZE_Y) #TODELETE
+        # TODO : grid_size_option = env.zone_size
         agent = AgentOption(agent_position, agent_state, False, grid_size_option)
         
     elif type_agent == "QAgent":

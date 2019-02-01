@@ -99,24 +99,3 @@ class Q(QAbstract):
         self.q_dict[state][action] *= (1 - LEARNING_RATE)
         self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
         
-
-class QExplore(QAbstract):
-
-    def update_q_dict_value(self, state, action, reward, new_state):
-        """
-        reward should be : 
-        _ penalty if action = option(a, b)
-        _ reward if action = explore        
-        """
-        try:
-            self.q_dict[state]
-        except:
-            raise Exception('state cannot be updated since it does not exist')
-
-        if self.q_dict[new_state] == {}:
-            max_value_action = 0
-        else:
-            max_value_action, _ = self.find_best_action(new_state)
-        self.q_dict[state][action] *= (1 - LEARNING_RATE)
-        self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
-        

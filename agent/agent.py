@@ -5,7 +5,7 @@ from gridenvs.utils import Direction, Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
-from agent.q import Q, QExplore
+from agent.q import Q
 from variables import *
 from data.save import SaveData
 
@@ -20,7 +20,6 @@ class AgentOption():
         self.grid_size_option = grid_size_option
         self.state = state
         self.q = Q(self.state)
-        self.q_explore = QExplore(self.state) # q function to use where there is no best alternative
         self.position = position
         self.reward = 0
         if not(play):
@@ -79,7 +78,7 @@ class AgentOption():
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
-                    best_reward, best_option = self.q_explore.find_best_action(self.state)#np.random.choice(list(self.q.q_dict[self.state].keys()))
+                    best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
                     best_option.position = best_option.get_position(self.position)
                     best_option.reward = 0
                     return best_option
@@ -108,20 +107,10 @@ class AgentOption():
         """
         if self.no_return_update(new_state):
             action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
-            # if the state and the action already exist, those 2 command will do nothing
+            # if the state and the action already exist, this line will do nothing
             self.q.update_q_dict_action_space(self.state, new_state, action, reward)
-            self.q_explore.update_q_dict_action_space(self.state, new_state, action, 0)
-            
             if option != self.explore_option:
                 self.q.update_q_dict_value(self.state, option, reward, new_state)
-                reward_q_explore = 0
-                if self.q_explore.q_dict[new_state] == {}:
-                    reward_q_explore = REWARD_AGENTOPTION_ACTION_EXPLORE
-                    
-                else:
-                    reward_q_explore = PENALTY_AGENTOPTION_ACTION_OPTION
-                    
-                self.q_explore.update_q_dict_value(self.state, option, reward_q_explore, new_state)
                 
     def no_return_update(self, new_state):
         """
