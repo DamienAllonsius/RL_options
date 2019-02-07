@@ -1,9 +1,17 @@
 from gridenvs.utils import Point, Direction
 from variables import *
+class DictUpdate(dict):
+    """
+    A new dict class that always add the key if missing
+    """
+    def __missing__(self, key):
+        self.update({key : DictUpdate() })
+
 class QAbstract(object):
     """ 
     Contains the q value function which maps a state and an action to a value
     q_dict is a dictionary q_dict = {state_* : {action_* : value}}
+    TODO : replace self.q_dict by a DictUpdate object
     """
     def __init__(self, state):
         self.q_dict = {state : {}}
