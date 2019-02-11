@@ -1,11 +1,5 @@
 from gridenvs.utils import Point, Direction
 from variables import *
-class DictUpdate(dict):
-    """
-    A new dict class that always add the key if missing
-    """
-    def __missing__(self, key):
-        self.update({key : DictUpdate() })
 
 class QAbstract(object):
     """ 
@@ -45,12 +39,10 @@ class QAbstract(object):
             self.q_dict[state]
         except:
             raise Exception("action cannot be added since state does not exist")
+        
         total_actions = self.q_dict[state]
-        if total_actions == {}:
+        if action not in total_actions:
             self.q_dict[state].update({action : reward})
-        else:
-            if action not in total_actions:
-                self.q_dict[state].update({action : reward})
         
     def find_best_action(self, state):
         try:
