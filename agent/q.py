@@ -15,6 +15,7 @@ class QAbstract(object):
         for state in self.q_dict:
             for action in self.q_dict[state]:
                 message += "state " +str(state) + " action " + str(action) + " value : " + str(self.q_dict[state][action]) + "\n"
+                
         return message
 
     def add_state(self, state):
@@ -25,10 +26,10 @@ class QAbstract(object):
         """
         try:
             self.q_dict[state]
+            
         except:
             self.q_dict.update({state : {}})
 
-            
     def add_action_to_state(self, state, action, reward = 0):
         """
         does not add anything if 
@@ -37,6 +38,7 @@ class QAbstract(object):
         """
         try:
             self.q_dict[state]
+            
         except:
             raise Exception("action cannot be added since state does not exist")
         
@@ -47,8 +49,10 @@ class QAbstract(object):
     def find_best_action(self, state):
         try:
             self.q_dict[state]
+            
         except:
             raise Exception('cannot find best action since there is no state : ' + str(state))
+        
         if not(self.is_actions(state)):
             raise Exception('cannot find best action since there is no action in state ' + str(state))
         
@@ -60,6 +64,7 @@ class QAbstract(object):
             if reward > best_reward:
                 best_reward = reward
                 best_action = action
+                
         return best_reward, best_action
 
     def is_actions(self, state):
@@ -89,13 +94,16 @@ class Q(QAbstract):
         """
         try:
             self.q_dict[state]
+            
         except:
             raise Exception('state cannot be updated since it does not exist')
 
         if self.q_dict[new_state] == {}:
             max_value_action = 0
+            
         else:
             max_value_action, _ = self.find_best_action(new_state)
+            
         self.q_dict[state][action] *= (1 - LEARNING_RATE)
         self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
         
