@@ -1,11 +1,5 @@
 from gridenvs.utils import Point, Direction
 from variables import *
-class DictUpdate(dict):
-    """
-    A new dict class that always add the key if missing
-    """
-    def __missing__(self, key):
-        self.update({key : DictUpdate() })
 
 class QAbstract(object):
     """ 

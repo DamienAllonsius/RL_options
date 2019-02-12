@@ -24,7 +24,7 @@ def make_environment_agent(env_name, type_agent):
     if type_agent == "AgentOption":
         grid_size_option = env.zone_size
         time.sleep(1)
-        type_exploration = "OptionExploreQ"
+        type_exploration = "OptionExplore"
         agent = AgentOption(agent_position, agent_state, False, grid_size_option, type_exploration)
         
     elif type_agent == "QAgent":
@@ -129,7 +129,7 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
 
 
 env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or input from command line 'GE_Montezuma-v1'
-type_agent = "QAgent"
+type_agent = "AgentOption"
 
 for seed in range(NUMBER_SEEDS):
     env, agent = make_environment_agent(env_name, type_agent = type_agent)
