@@ -9,23 +9,23 @@ from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import * 
 
-def make_environment_agent(env_name, type_agent, blurred_bool = False, number_gray_colors = NUMBER_GRAY_COLORS):
+def make_environment_agent(env_name, type_agent):
     """
     type_agent parameter should be "AgentOption" or "QAgent"
     """
     
     env = gym.make(env_name)
-    env.set_zone_size(ZONE_SIZE_X, ZONE_SIZE_Y)
+#    env.set_zone_size(2, 2)
     env.reset()
-    env.blurred = blurred_bool
-    env.number_gray_colors = number_gray_colors
     agent_position = env.get_hero_position()
     agent_state = (env.get_hero_zone(), 0)
     grid_size = env.world.grid_size
     
     if type_agent == "AgentOption":
         grid_size_option = env.zone_size
-        agent = AgentOption(agent_position, agent_state, False, grid_size_option)
+        time.sleep(1)
+        type_exploration = "OptionExploreQ"
+        agent = AgentOption(agent_position, agent_state, False, grid_size_option, type_exploration)
         
     elif type_agent == "QAgent":
         agent = QAgent(agent_position, grid_size, False)
@@ -47,9 +47,9 @@ def action_options(env, action, t):
     """
     agent.reset(INITIAL_AGENT_POSITION, INITIAL_AGENT_STATE)
     running_option = False
-    #start the loop
+    #start the loopt
     done = False
-    display_learning = False
+    display_learning = True
     while not(done):
         if display_learning:
             env.render_scaled()
@@ -82,7 +82,7 @@ def action_options(env, action, t):
 def action(env, action, t):
     agent.reset(INITIAL_AGENT_POSITION)
     done = False
-    display_learning = False
+    display_learning = True
     #start the loop
     while not(done):
         if display_learning:
@@ -132,7 +132,7 @@ env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or 
 type_agent = "QAgent"
 
 for seed in range(NUMBER_SEEDS):
-    env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
+    env, agent = make_environment_agent(env_name, type_agent = type_agent)
     INITIAL_AGENT_POSITION = agent.position
     
     if type_agent == "AgentOption":

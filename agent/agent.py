@@ -8,10 +8,20 @@ from agent.option import Option, OptionExplore, OptionExploreQ
 from agent.q import Q
 from variables import *
 from data.save import SaveData
+"""
+TODO for pix. 
+
+Some ideas: 
+
+the agent state can be easily replaced by a set of pixels (N.B: make a function to compute the zones in main.py)
+for the option, we should first go to a previous commit to set the q function as a dict as before.
+No more tabular q function in the case of a pixel based policy.
+The projection of the point should be the projection of the image to the zone of interest.
+"""
 
 class AgentOption(): 
 
-    def __init__(self, position, state, play, grid_size_option):
+    def __init__(self, position, state, play, grid_size_option, type_exploration):
         """
         TODO : replace state by a dictionary : self.state = {'zone' : zone, 'state_id' = 0}
         """
@@ -22,8 +32,14 @@ class AgentOption():
         self.q = Q(self.state)
         self.position = position
         self.reward = 0
+        self.type_exploration = type_exploration
         if not(play):
-            self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
+            if type_exploration == "OptionExploreQ":
+                self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
+            elif type_exploration == "OptionExplore":
+                self.explore_option = OptionExplore(self.state) # special explore options
+            else:
+                raise Exception("type_exploration unknown")
 
     def make_save_data(self, seed):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
@@ -68,9 +84,12 @@ class AgentOption():
             if not(self.q.is_actions(self.state)): 
                 self.reset_explore_option()
                 return self.explore_option
-    
+            
             # options are available : if the exploration is not done then continue exploring
-            elif not(self.explore_option.exploration_terminated[self.state]):
+            elif ((self.type_exploration == "OptionExploreQ" and
+                   not(self.explore_option.exploration_terminated[self.state])) or
+                  (self.type_exploration == "OptionExplore" and
+                   not(self.explore_option.check_end_option(self.state)))):
                 self.reset_explore_option()
                 return self.explore_option
         
