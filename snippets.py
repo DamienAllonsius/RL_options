@@ -10,22 +10,39 @@ import gridenvs.examples  # load example gridworld environments
 
 
 class ObservationZoneWrapper(gym.ObservationWrapper):
-
-    def __init__(self, env, zone_size_x, zone_size_y, blurred, number_gray_colors = 0):
-
+    """
+    to be used with class ZonesEnv
+    """
+    def __init__(self, env):
+        if type(other_option).__name__ != "ZonesEnv":
+            raise Exception("This wrapper has to be used with ZonesEnv environment only !")                
         super(gym.ObservationWrapper, self).__init__(env)
-        self.blurred = blurred
-        self.zone_size_x = zone_size_x
-        self.zone_size_y = zone_size_y
-        self.number_gray_colors = number_gray_colors
     
     def observation(self, observation):
-        len_y = len(observation) # with MontezumaRevenge-v4 : 160
-        len_x = len(observation[0]) # with MontezumaRevenge-v4 : 210
-        downsampled_size = (len_x // self.zone_size_x , len_y // self.zone_size_y)
-        img_blurred = cv2.resize(observation, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
-        img_blurred_resized = cv2.resize(img_blurred, (512, 512), interpolation=cv2.INTER_NEAREST) # vector of size "512x512"
-        return img_blurred_resized
+        if self.env.blurred:
+            len_y = len(observation) # with MontezumaRevenge-v4 : 160
+            len_x = len(observation[0]) # with MontezumaRevenge-v4 : 210
+            if (len_x % self.zone_size.x == 0) and (len_y % self.zone_size.y == 0):
+                downsampled_size = (len_x // self.env.zone_size_x , len_y // self.env.zone_size_y)
+                img_blurred = cv2.resize(observation, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
+                return img_blurred
+            
+            else:
+                raise Exception("The gridworld can not be fragmented into zones")
+        
+        else:
+            return observation
+
+        # gray scale ?
+        #             if self.number_gray_colors:
+        #                 for j in range(size_x_image_blurred):
+        #                     for i in range(size_y_image_blurred):
+        #                         rgb = image_blurred[i][j]
+        #                         gray_level = (255 * 3) // self.number_gray_colors
+        #                         sum_rgb = (sum(rgb) // gray_level) * gray_level
+        #                         image_blurred[i][j] = [sum_rgb] * 3
+        #             return image_blurred
+
 """
 env = ObservationZoneWrapper(gym.make(ENV_NAME),  zone_size_x = 1, zone_size_y = 1, blurred = True)
 obs = env.reset()
