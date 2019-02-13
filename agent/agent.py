@@ -1,7 +1,7 @@
 """ This is an abstract class for agents"""
 
 from gridenvs.keyboard_controller import Controls, Key
-from gridenvs.utils import Direction, Point
+from gridenvs.utils import Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
@@ -21,50 +21,51 @@ The projection of the point should be the projection of the image to the zone of
 
 class AgentOption(): 
 
-    def __init__(self, position, state, play, grid_size_option, type_exploration):
-        """
-        TODO : replace state by a dictionary : self.state = {'zone' : zone, 'state_id' = 0}
-        """
-        self.last_action = 0
+    def __init__(self, state, number_actions, type_exploration, play):
+        self.number_actions = number_actions
+        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
-        self.grid_size_option = grid_size_option
         self.state = state
-        self.q = Q(self.state)
-        self.position = position
+        self.q = Q_dict(self.state)
         self.reward = 0
         self.type_exploration = type_exploration
         if not(play):
             if type_exploration == "OptionExploreQ":
-                self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
+                raise Exception("OptionExploreQ not implemented yet")
+                self.explore_option = OptionExploreQ(self.state, last_action = self.last_action) # special explore options
             elif type_exploration == "OptionExplore":
                 self.explore_option = OptionExplore(self.state) # special explore options
             else:
                 raise Exception("type_exploration unknown")
 
     def make_save_data(self, seed):
+        #TODO : monitor ?
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
         
     def reset_explore_option(self):
-        self.explore_option.reward = 0
+        self.explore_option.reward_for_agent = 0
         self.explore_option.initial_state = self.state
         if type(self.explore_option).__name__ == "OptionExploreQ":
-            self.explore_option.position = self.explore_option.get_position(self.position)
-            self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
-            # if this state is explored for the first time : make a new q function full of zeros
-            # and set the exploration_terminated boolean for this state to False
-            try:
-                self.explore_option.q[self.state]
-            except:
-                self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
-                self.explore_option.exploration_terminated.update({self.state : False})
+            raise Exception("OptionExploreQ not implemented yet")
         
+        """
+        TODO : refactor this
+        """
+        # self.explore_option.position = self.explore_option.get_position(self.position)
+        # self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
+        # # if this state is explored for the first time : make a new q function full of zeros
+        # # and set the exploration_terminated boolean for this state to False
+        # try:
+        #     self.explore_option.q[self.state]
+        # except:
+        #     self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
+        #     self.explore_option.exploration_terminated.update({self.state : False})
         
-    def reset(self, initial_agent_position, initial_agent_state):
+    def reset(self, initial_agent_state):
         """
         Same as __init__ but the q function is preserved 
         """
         self.reward = 0
-        self.position = initial_agent_position
         self.state = initial_agent_state
         self.reset_explore_option()
 
@@ -76,7 +77,6 @@ class AgentOption():
         if self.play: # in this case we do not learn anymore
             _, best_option = self.q.find_best_action(self.state)
             best_option.play = True
-            best_option.position = best_option.get_position(self.position)
             return best_option
 
         else:
@@ -97,39 +97,43 @@ class AgentOption():
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
-                    best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
-                    best_option.position = best_option.get_position(self.position)
-                    best_option.reward = 0
+                    best_option = np.random.choice(list(self.q.q_function[self.state].keys()))
+                    best_option.reward_for_agent = 0
                     return best_option
                 
                 else:
-                    best_option.position = best_option.get_position(self.position)
-                    best_option.reward = 0
+                    best_option.reward_for_agent = 0
                     return best_option
-                        
-    def update_agent(self, new_position, new_state, option, action):
+
+    def update_agent(self, new_state, option, action):
+        """
+        In this order
+        _update last action done
+        _update reward
+        _add an option if a new state has just been discovered
+        _update the q function value
+        _update the state
+        """
         if self.play:
             self.state = new_state
-            self.position = new_position
             
         else:
-            self.last_action = Direction.cardinal().index(action)
-            total_reward = self.compute_total_reward(new_state[1])
+            self.last_action = action
+            total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, option, total_reward)
             self.state = new_state
-            self.position = new_position
             
     def update_q_function_options(self, new_state, option, reward):
         """
         only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
         """
-        if self.no_return_update(new_state):
-            action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+        if self.no_return_update(new_state): #update or not given if the reverse option already exists
+            action = Option(self.state, new_state, self.play)
             # if the state and the action already exist, this line will do nothing
-            self.q.update_q_dict_action_space(self.state, new_state, action, reward)
+            self.q.update_q_function_action_space(self.state, new_state, action, reward)
             if option != self.explore_option:
-                self.q.update_q_dict_value(self.state, option, reward, new_state)
+                self.q.update_q_function_value(self.state, option, reward, new_state)
                 
     def no_return_update(self, new_state):
         """
@@ -145,13 +149,6 @@ class AgentOption():
 
         return True
     
-    def compute_total_reward(self, new_state_id):
-        total_reward = PENALTY_AGENT_ACTION
-        if self.state[1] < new_state_id: # we get an item from the world
-            total_reward += REWARD_KEY # extra reward for having the key !
-
-        return total_reward
-        
     def record_reward(self, t):
         """
         save the reward in a file following this pattern:
@@ -191,13 +188,12 @@ class KeyboardAgent(object):
 
 
 class QAgent(object):
-    def __init__(self, position, grid_size, play):
+    def __init__(self, position, number_actions, grid_size, play):
         self.play = play
         self.grid_size = grid_size
         self.number_state = 2 * grid_size.x * grid_size.y + 1
-        self.number_actions = len(Direction.cardinal())
+        self.number_actions = number_actions
         self.q = np.zeros((self.number_state, self.number_actions))
-        self.cardinal = Direction.cardinal()
         self.state_id = 0
         self.position = self.encode_position(position)
         self.reward = 0
@@ -213,12 +209,6 @@ class QAgent(object):
             return point.x + self.grid_size.x * point.y + self.grid_size.x * self.grid_size.y * self.state_id
         else:
             return self.number_state - 1
-
-    def encode_direction(self, direction):
-        """
-        this function encodes a direction Direction.N/S/E/W into a number, 1/2/3/4
-        """
-        return self.cardinal.index(direction)
         
     def reset(self, initial_position):
         self.reward = 0
@@ -246,7 +236,7 @@ class QAgent(object):
             else:
                 best_action = np.argmax(self.q[self.position])
             
-        return self.cardinal[best_action]
+        return best_action
 
     def record_reward(self, t):
         """

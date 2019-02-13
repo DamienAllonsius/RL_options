@@ -2,7 +2,7 @@
 This class is for making options
 For the moment we only implement the "exploring option"
 """
-from gridenvs.utils import Direction, Point
+from gridenvs.utils import Point
 from agent.q import Q
 import time
 import numpy as np
@@ -12,17 +12,13 @@ class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
     """
-    def __init__(self, position, initial_state, terminal_state, grid_size_option, play):
+    def __init__(self, number_actions, initial_state, terminal_state, play):
         """
         here grid_size_option is the size of the zone 
         """
         self.play = play
-        self.grid_size_option = grid_size_option
-        self.number_state = grid_size_option.x * grid_size_option.y
-        self.number_actions = len(Direction.cardinal())
-        self.q = np.zeros((self.number_state, self.number_actions))
-        self.cardinal = Direction.cardinal()
-        self.position = self.get_position(position)
+        self.number_actions = number_actions
+        self.q = Q(initial_state, number_actions)
         self.initial_state = initial_state
         self.terminal_state = terminal_state
         self.reward_for_agent = 0
@@ -46,32 +42,14 @@ class Option(object):
     def check_end_option(self, new_state):
         return new_state != self.initial_state
     
-    def get_position(self, point):
-        """
-        point is the current position on the whole grid.
-        point is projected into the zone
-        """
-        projected_point = point % self.grid_size_option
-        return projected_point.x + self.grid_size_option.x * projected_point.y
-        
-    def encode_direction(self, direction):
-        """
-        this function encodes a direction Direction.N/S/E/W into a number, 1/2/3/4
-        """
-        return self.cardinal.index(direction)
-        
-    def update_option(self, reward, new_position, new_state, action):
-        encoded_new_position = self.get_position(new_position)
+    def update_option(self, reward, new_state, action):
         if self.play:
-            self.position = encoded_new_position
             return self.check_end_option(new_state)
 
         else:
-            encoded_action = self.encode_direction(action)
-            max_value_action = np.max(self.q[encoded_new_position])
+            self.reward_for_agent += reward
             total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
-            self.reward_for_agent += total_reward
             if end_option:
                 if new_state == self.terminal_state:
                     total_reward += REWARD_END_OPTION
@@ -79,31 +57,30 @@ class Option(object):
                 else:
                     total_reward += PENALTY_END_OPTION
 
-            self.q[self.position, encoded_action] *= (1 - LEARNING_RATE)
-            self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)
-            self.position = encoded_new_position
+            self.q.q_function.update_q_function_value(self.state, action, total_reward, new_state):
             return end_option
       
     def act(self):
         if self.play:
-            best_action = np.argmax(self.q[self.position])
+            _, best_action = self.q.find_best_action(self.initial_state)
 
         else:
             if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
                 best_action = np.random.randint(self.number_actions)
             
             else:
-                best_action = np.argmax(self.q[self.position])
+                _, best_action = self.q.find_best_action(self.initial_state)
             
-        return self.cardinal[best_action]
+        return best_action
 
 class OptionExplore(object):
     """
     This is a special option to explore. No q_function is needed here.
     """
-    def __init__(self, initial_state):
+    def __init__(self, initial_state, number_actions):
         self.initial_state = initial_state
         self.reward_for_agent = 0
+        self.number_actions = number_actions
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)
@@ -115,10 +92,8 @@ class OptionExplore(object):
         return hash("explore")
 
     def act(self):
-        # For the moment we do a stupid thing: go random, until it finds a new zone
-        direction_number = np.random.randint(4)
-        cardinal = Direction.cardinal()
-        return cardinal[direction_number]
+        # here we do a stupid thing: go random, until it finds a new zone
+        return np.random.randint(self.number_actions)
     
     def check_end_option(self, new_state):
         """
@@ -126,14 +101,17 @@ class OptionExplore(object):
         """
         return new_state != self.initial_state
 
-    def update_option(self, reward, new_position, new_state, action):
-        self.reward_for_agent += PENALTY_OPTION_ACTION
+    def update_option(self, reward, new_state, action):
+        self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
         return self.check_end_option(new_state)
 
 
 class OptionExploreQ(Option):
-
+    """
+    refactoring, TODO
+    """
     def __init__(self, position, initial_state, grid_size_option, last_action):
+        raise Exception("not implimented yet")
         self.grid_size_option = grid_size_option
         self.number_state = grid_size_option.x * grid_size_option.y
         self.number_actions = len(Direction.cardinal())

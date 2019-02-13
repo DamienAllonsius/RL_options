@@ -14,40 +14,36 @@ def make_environment_agent(env_name, type_agent):
     """
     type_agent parameter should be "AgentOption" or "QAgent"
     """
-    env = gym.make(ENV_NAME)
-    env_wrapped = ObservationZoneWrapper(gym.make(ENV_NAME),  zone_size_x = 2, zone_size_y = 2, blurred = True)
-    #    env.set_zone_size(2, 2)
-    obs_wrapped = env_wrapped.reset()
-    obs = env.reset()
-    agent_position = env.get_hero_position()
-    agent_state = obs_wrapped
-    grid_size = env.world.grid_size
     
     if type_agent == "AgentOption":
-        grid_size_option = env.zone_size
-        time.sleep(1)
-        type_exploration = "OptionExploreQ"
-        agent = AgentOption(agent_position, agent_state, False, grid_size_option, type_exploration)
+        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED)
+        initial_agent_state = env.reset()
+        type_exploration = "OptionExplore"
+        agent = AgentOption(initial_agent_state, type_exploration, play = False)
+        return env, agent, initial_agent_state
         
     elif type_agent == "QAgent":
-        agent = QAgent(agent_position, grid_size, False)
+        env = gym.make(ENV_NAME)
+        env.reset()
+        initial_agent_position = env.get_hero_position()
+        grid_size = env.world.grid_size
+        agent = QAgent(initial_agent_position, grid_size, play = False)
+        return env, agent, initial_agent_position
         
     else:
         raise Exception("agent name does not exist")
     
-    return env, agent
 
 
-def action_options(env, action, t):
+def act_options(env, t, initial_setting):
     """
     0/ The agent chooses an option
     1/ The option makes the action
-    TOFIX : I change the info in the env render. Info contains observations for the moment : zone and position of the agent
     2/ The environment gives the feedback
     3/ We update the option's parameters and we get end_option which is True if only if the option is done.
     4/ The agent update his info about the option
     """
-    agent.reset(INITIAL_AGENT_POSITION, INITIAL_AGENT_STATE)
+    agent.reset(initial_setting)
     running_option = False
     #start the loop
     done = False
@@ -64,25 +60,18 @@ def action_options(env, action, t):
                 
         # else, let the current option act
         action = option.act()
-        new_agent_state, reward, done, info = env.step(action)
-        new_position, new_state = info['position'], (info['zone'], info['state_id'])
-        end_option = option.update_option(reward, new_position, new_state, action)
+        new_obs, reward, done, _ = env.step(action)
+        end_option = option.update_option(reward, new_obs, action)
         # if the option ended then update the agent's data
-        if done:
-            # The agent found the door or hit a wall
-            if new_state[1] == 2:
-                # In this case the agent found the door
-                running_option = False
-                agent.update_agent(new_position, new_agent_state, option, action)
+        # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
+        if end_option:
+            #agent.update_agent(new_position, new_agent_state, option, action)
+            # In this case the option ended normally and the process continues
+            running_option = False
+            agent.update_agent(new_position, new_agent_state, option, action)
 
-        else:
-            if end_option:
-                # In this case the option ended normally and the process continues
-                running_option = False
-                agent.update_agent(new_position, new_agent_state, option, action)
-
-def action(env, action, t):
-    agent.reset(INITIAL_AGENT_POSITION)
+def act(env, t, initial_setting):
+    agent.reset(initial_setting)
     done = False
     display_learning = True
     #start the loop
@@ -98,7 +87,7 @@ def action(env, action, t):
         agent.update(reward, new_position, action, new_state_id)
     
 
-def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
+def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARNING, seed = 0):
     
     np.random.seed(seed)
     agent.play = play
@@ -113,10 +102,10 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
         # reset the parameters
         env.reset()
         if type(agent).__name__ == "AgentOption":
-            action_options(env, action, t)
+            act_options(env, t, initial_setting)
             
         elif type(agent).__name__ == "QAgent":
-            action(env, action, t)
+            act(env, t, initial_setting)
       
         if(not(play)):
             agent.record_reward(t)
@@ -134,19 +123,7 @@ env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or 
 type_agent = "AgentOption"
 
 for seed in range(NUMBER_SEEDS):
-    env, agent = make_environment_agent(env_name, type_agent = type_agent)
-    INITIAL_AGENT_POSITION = agent.position
-    
-    if type_agent == "AgentOption":
-        INITIAL_AGENT_STATE = agent.state
-        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
-        #learn_or_play_options(env, agent_learned, play = True)
-        
-    elif type_agent == "QAgent":
-        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
-        #learn_or_play(env, agent_learned, play = True)
-        
-    else:
-        raise Exception("agent name does not exist")
+    env, agent, initial_setting = make_environment_agent(env_name, type_agent = type_agent)
+    agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed, initial_setting = initial_setting)
     
 agent_learned.save_data.plot_data()

@@ -13,17 +13,18 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
     """
     to be used with class ZonesEnv
     """
-    def __init__(self, env):
-        if type(other_option).__name__ != "ZonesEnv":
-            raise Exception("This wrapper has to be used with ZonesEnv environment only !")                
+    def __init__(self, env, zone_size_x, zone_size_y, blurred):
         super(gym.ObservationWrapper, self).__init__(env)
-    
+        self.zone_size_x = zone_size_x
+        self.zone_size_y = zone_size_y
+        self.blurred = blurred
+        
     def observation(self, observation):
-        if self.env.blurred:
+        if self.blurred:
             len_y = len(observation) # with MontezumaRevenge-v4 : 160
             len_x = len(observation[0]) # with MontezumaRevenge-v4 : 210
-            if (len_x % self.zone_size.x == 0) and (len_y % self.zone_size.y == 0):
-                downsampled_size = (len_x // self.env.zone_size_x , len_y // self.env.zone_size_y)
+            if (len_x % self.zone_size_x == 0) and (len_y % self.zone_size_y == 0):
+                downsampled_size = (len_x // self.zone_size_x , len_y // self.zone_size_y)
                 img_blurred = cv2.resize(observation, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
                 return img_blurred
             
