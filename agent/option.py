@@ -3,7 +3,7 @@ This class is for making options
 For the moment we only implement the "exploring option"
 """
 from gridenvs.utils import Point
-from agent.q import Q
+from agent.q import QDict, QArray
 import time
 import numpy as np
 from variables import *
@@ -18,7 +18,7 @@ class Option(object):
         """
         self.play = play
         self.number_actions = number_actions
-        self.q = Q(initial_state, number_actions)
+        self.q = QArray(initial_state, number_actions)
         self.initial_state = initial_state
         self.terminal_state = terminal_state
         self.reward_for_agent = 0
@@ -37,7 +37,11 @@ class Option(object):
             return False
 
     def __hash__(self):
+        """
+        states are tuples
+        """
         return hash((self.initial_state, self.terminal_state))
+#    hash((tuple(self.initial_state), tuple(self.terminal_state)))
 
     def check_end_option(self, new_state):
         return new_state != self.initial_state
@@ -57,7 +61,7 @@ class Option(object):
                 else:
                     total_reward += PENALTY_END_OPTION
 
-            self.q.q_function.update_q_function_value(self.state, action, total_reward, new_state):
+            self.q.update_q_function_value(self.initial_state, action, total_reward, new_state)
             return end_option
       
     def act(self):
@@ -99,7 +103,7 @@ class OptionExplore(object):
         """
         option ends iff it has found a new zone
         """
-        return new_state != self.initial_state
+        return not(np.array_equal(new_state, self.initial_state))
 
     def update_option(self, reward, new_state, action):
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent

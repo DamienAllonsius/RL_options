@@ -17,9 +17,9 @@ def make_environment_agent(env_name, type_agent):
     
     if type_agent == "AgentOption":
         env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED)
-        initial_agent_state = env.reset()
+        _, initial_agent_state = env.reset() #first output : observation, second output : blurred observation
         type_exploration = "OptionExplore"
-        agent = AgentOption(initial_agent_state, type_exploration, play = False)
+        agent = AgentOption(state = initial_agent_state, number_actions = env.action_space.n, type_exploration = type_exploration, play = False)
         return env, agent, initial_agent_state
         
     elif type_agent == "QAgent":
@@ -50,7 +50,7 @@ def act_options(env, t, initial_setting):
     display_learning = True
     while not(done):
         if display_learning:
-            env.render_scaled()
+            env.render()
             #time.sleep(1)
         # if no option acting, choose an option
         if not(running_option):
@@ -60,15 +60,15 @@ def act_options(env, t, initial_setting):
                 
         # else, let the current option act
         action = option.act()
-        new_obs, reward, done, _ = env.step(action)
-        end_option = option.update_option(reward, new_obs, action)
+        new_obs, new_obs_blurred, reward, done, _ = env.step(action)
+        end_option = option.update_option(reward, new_obs, new_obs_blurred, action)
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
             #agent.update_agent(new_position, new_agent_state, option, action)
             # In this case the option ended normally and the process continues
             running_option = False
-            agent.update_agent(new_position, new_agent_state, option, action)
+            agent.update_agent(new_obs_blurred, option, action)
 
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
@@ -95,7 +95,7 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
     if play:
         iteration = 1
         env.reset()
-        env.render_scaled()
+        env.render()
         wait = input("PRESS ENTER TO PLAY.")
         
     for t in tqdm(range(1, iteration + 1)):

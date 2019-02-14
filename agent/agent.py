@@ -5,7 +5,7 @@ from gridenvs.utils import Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
-from agent.q import Q
+from agent.q import QDict, QArray
 from variables import *
 from data.save import SaveData
 """
@@ -26,7 +26,7 @@ class AgentOption():
         self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
         self.state = state
-        self.q = Q_dict(self.state)
+        self.q = QDict(self.state)
         self.reward = 0
         self.type_exploration = type_exploration
         if not(play):
@@ -34,7 +34,7 @@ class AgentOption():
                 raise Exception("OptionExploreQ not implemented yet")
                 self.explore_option = OptionExploreQ(self.state, last_action = self.last_action) # special explore options
             elif type_exploration == "OptionExplore":
-                self.explore_option = OptionExplore(self.state) # special explore options
+                self.explore_option = OptionExplore(self.state, self.number_actions) # special explore options
             else:
                 raise Exception("type_exploration unknown")
 
@@ -97,7 +97,7 @@ class AgentOption():
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
-                    best_option = np.random.choice(list(self.q.q_function[self.state].keys()))
+                    best_option = self.q.get_random_action(self.state)
                     best_option.reward_for_agent = 0
                     return best_option
                 
@@ -129,22 +129,23 @@ class AgentOption():
         only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
         """
         if self.no_return_update(new_state): #update or not given if the reverse option already exists
-            action = Option(self.state, new_state, self.play)
+            action = Option(self.number_actions, self.state, new_state, self.play)
             # if the state and the action already exist, this line will do nothing
-            self.q.update_q_function_action_space(self.state, new_state, action, reward)
+            self.q.update_q_function_action_state(self.state, new_state, action, reward)
             if option != self.explore_option:
                 self.q.update_q_function_value(self.state, option, reward, new_state)
                 
     def no_return_update(self, new_state):
-        """
+        """[
         (no return option)
             does not add anything if 
             for action in q[option.terminal_state]:
             action.terminal_state = option.initial_state
         """
         if self.q.is_state(new_state):
-            for action in self.q.q_dict[new_state]:
-                if action.terminal_state == self.state:
+            new_state_idx = self.q.state_list.index(new_state)
+            for action in self.q.q_function[new_state_idx]:
+                if np.array_equal(action.terminal_state, self.state):
                     return False
 
         return True

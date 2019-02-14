@@ -25,15 +25,16 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
          
         else: # we scale the image from other environment (like Atari)
             img = self.env.env.ale.getScreenRGB2()
-            img_blurred = self.make_downsampled_image(img)
-            img_blurred_resized = cv2.resize(img_blurred, size, interpolation=cv2.INTER_NEAREST)
+            if self.blurred:
+                img = self.make_downsampled_image(img)
+            img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
             if mode == 'rgb_array':
-                return img_blurred_resized
+                return img
             elif mode == 'human':
                 from gym.envs.classic_control import rendering
                 if self.env.env.viewer is None:
                     self.env.env.viewer = rendering.SimpleImageViewer()
-                    self.env.env.viewer.imshow(img_blurred_resized)
+                    self.env.env.viewer.imshow(img)
                 return self.env.env.viewer.isopen
 
     def make_downsampled_image(self, image):
@@ -52,7 +53,8 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
             img_blurred = self.make_downsampled_image(observation)
             # transform the observation in tuple
             img_blurred_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_blurred)
-            return img_blurred_tuple
+            observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
+            return observation_tuple, img_blurred_tuple
         
         else:
             return observation

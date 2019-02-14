@@ -10,7 +10,7 @@ class QAbstract(object):
     """
     def __init__(self, state):
         self.state_list = [state]
-        self.q_function = [self.get_empty_structure()]:
+        self.q_function = [self.get_empty_structure()]
 
     def get_empty_structure(self):
         raise Exception("Not Implemented")
@@ -22,6 +22,18 @@ class QAbstract(object):
                 message += "state " +str(self.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q_function[state_index][action]) + "\n"
                 
         return message
+
+    # def get_index(self, element):
+    #     """
+    #     This method has to be used to get the index of a state in state_list.
+    #     Indeed, as the environment returns np.array as observations, self.state_list is of type list of arrays.
+    #     In this case self.state_list.index does not work.
+    #     """
+    #     indx = -1
+    #     for arr in self.state_list:
+    #         indx += 1
+    #         if np.array_equal(arr, element):
+    #             return indx
 
     def is_state(self, state):
         return state in self.state_list
@@ -49,7 +61,7 @@ class QAbstract(object):
         
     def find_best_action(self, state):
         raise Exception("Not Implemented")
- 
+
     def update_q_function_action_state(self, state, new_state, action, reward):
         self.add_action_to_state(state, action, reward)
         self.add_state(new_state)
@@ -75,8 +87,11 @@ class QAbstract(object):
         else:
             raise Exception('unhable to update q since state does not exist')
 
+    def get_random_action(self, state):
+        raise Exception("Not Implemented")
 
-class Q_dict(QAbstract):
+
+class QDict(QAbstract):
     """
     this class is used when the number of actions is unknown : the elements of self.q_function are dictionaries.
     """
@@ -101,16 +116,21 @@ class Q_dict(QAbstract):
             idx = self.state_list.index(state)
             values = list(self.q_function[idx].values())
             actions = list(self.q_function[idx].keys())
-            return max(values), actions[values.index(max(values))]            
+            return max(values), actions[values.index(max(values))]
+
+    def get_random_action(self, state):
+        state_keys = self.q_function[self.state_list.index(state)].keys()
+        return np.random.choice(list(state_keys))
+ 
         
-class Q_array(QAbstract):
+class QArray(QAbstract):
     """
     TODO : is action ?!
     this class is used when the number of actions known : the elements of self.q_function are fixed size arrays.
     """
     def __init__(self, state, number_actions):
-        super(QAbstract, self).__init__(state)
         self.number_actions = number_actions
+        super().__init__(state)
         
     def get_empty_structure(self):
         return np.zeros(self.number_actions)
@@ -128,5 +148,11 @@ class Q_array(QAbstract):
         
         else: # return best_value, best_action
             idx = self.state_list.index(state)
-            return max(q[idx]), np.argmax(q[idx])
+            return max(self.q_function[idx]), np.argmax(self.q_function[idx])
 
+
+    def get_random_action(self, state):
+        """
+        TODO
+        """
+        pass
