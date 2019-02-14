@@ -25,30 +25,34 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
          
         else: # we scale the image from other environment (like Atari)
             img = self.env.env.ale.getScreenRGB2()
-            img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
+            img_blurred = self.make_downsampled_image(img)
+            img_blurred_resized = cv2.resize(img_blurred, size, interpolation=cv2.INTER_NEAREST)
             if mode == 'rgb_array':
-                return img
+                return img_blurred_resized
             elif mode == 'human':
                 from gym.envs.classic_control import rendering
                 if self.env.env.viewer is None:
                     self.env.env.viewer = rendering.SimpleImageViewer()
-                    self.env.env.viewer.imshow(img)
+                    self.env.env.viewer.imshow(img_blurred_resized)
                 return self.env.env.viewer.isopen
-                 
-    def observation(self, observation):
-        if self.blurred:
-            len_y = len(observation) # with MontezumaRevenge-v4 : 160
-            len_x = len(observation[0]) # with MontezumaRevenge-v4 : 210
-            if (len_x % self.zone_size_x == 0) and (len_y % self.zone_size_y == 0):
-                downsampled_size = (len_x // self.zone_size_x , len_y // self.zone_size_y)
-                img_blurred = cv2.resize(observation, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
-                # transform the observation in tuple
-                #tuple(map(tuple,img_blurred)))
-                #time.sleep(10)
-                return img_blurred
+
+    def make_downsampled_image(self, image):
+        len_y = len(image) # with MontezumaRevenge-v4 : 160
+        len_x = len(image[0]) # with MontezumaRevenge-v4 : 210
+        if (len_x % self.zone_size_x == 0) and (len_y % self.zone_size_y == 0):
+            downsampled_size = (len_x // self.zone_size_x , len_y // self.zone_size_y)
+            img_blurred = cv2.resize(image, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
+            return img_blurred
+        else:
+            raise Exception("The gridworld " + str(len_x) + "x" + str(len_y) +  " can not be fragmented into zones " + str(self.zone_size_x) + "x" + str(self.zone_size_y))
             
-            else:
-                raise Exception("The gridworld " + str(len_x) + "x" + str(len_y) +  " can not be fragmented into zones " + str(self.zone_size_x) + "x" + str(self.zone_size_y))
+    def observation(self, observation):
+        #instead of returning a nested array, returnes a *blurred*, *nested* *tuple*
+        if self.blurred:
+            img_blurred = self.make_downsampled_image(observation)
+            # transform the observation in tuple
+            img_blurred_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_blurred)
+            return img_blurred_tuple
         
         else:
             return observation
