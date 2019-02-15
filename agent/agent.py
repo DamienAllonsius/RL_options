@@ -118,34 +118,36 @@ class AgentOption():
             self.state_blurred = new_state_blurred
             
         else:
-#            self.last_action = action
+    #            self.last_action = action
+            if option.reward_for_agent > 0:
+                print("got a posive reward!")
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, new_state_blurred, option, total_reward)
             self.state_blurred = new_state_blurred
             
     def update_q_function_options(self, new_state, new_state_blurred, option, reward):
-        #if self.no_return_update(new_state): #update or not given if the reverse option already exists
-        action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
-        # if the state and the action already exist, this line will do nothing
-        self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action, reward)
-        if option != self.explore_option:
-            self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
+        if True:#self.no_return_update(new_state): #update or not given if the reverse option already exists
+            action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
+            # if the state and the action already exist, this line will do nothing
+            self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action, reward)
+            if option != self.explore_option:
+                self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
 
-    # def no_return_update(self, new_state):
-    #     """[
-    #     (no return option)
-    #         does not add anything if 
-    #         for action in q[option.terminal_state]:
-    #         action.terminal_state = option.initial_state
-    #     """
-    #     if self.q.is_state(new_state):
-    #         new_state_idx = self.q.state_list.index(new_state)
-    #         for action in self.q.q_function[new_state_idx]:
-    #             if np.array_equal(action.terminal_state, self.state):
-    #                 return False
+    def no_return_update(self, new_state):
+        """[
+        (no return option)
+            does not add anything if 
+            for action in q[option.terminal_state]:
+            action.terminal_state = option.initial_state
+        """
+        if self.q.is_state(new_state):
+            new_state_idx = self.q.state_list.index(new_state)
+            for action in self.q.q_function[new_state_idx]:
+                if action.terminal_state == self.state:
+                    return False
 
-    #     return True
+        return True
     
     def record_reward(self, t):
         """

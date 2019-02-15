@@ -14,12 +14,15 @@ class QAbstract(object):
 
     def get_empty_structure(self):
         raise Exception("Not Implemented")
+
+    def is_empty(self, struc):
+        raise Exception("Not Implemented")
         
     def __str__(self):
         message = ""
-        for state_index in self.q_function:
+        for state_index in range(len(self.q_function)):
             for action in self.q_function[state_index]:
-                message += "state " +str(self.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q_function[state_index][action]) + "\n"
+                message += "state " +str(hash(self.state_list[state_index])) + " action " + str(action) + " value : " + str(self.q_function[state_index][action]) + "\n"
                 
         return message
 
@@ -43,7 +46,7 @@ class QAbstract(object):
             raise Exception("cannot test if actions exist since state does not exist")
         
         else:
-            return self.q_function[self.state_list.index(state)] != self.get_empty_structure()
+            return self.is_empty(self.q_function[self.state_list.index(state)])
 
     def is_action_to_state(self, state, action):
         if self.is_state(state):
@@ -121,6 +124,9 @@ class QDict(QAbstract):
     def get_random_action(self, state):
         state_keys = self.q_function[self.state_list.index(state)].keys()
         return np.random.choice(list(state_keys))
+
+    def is_empty(self, struct):
+         return struct != self.get_empty_structure()
  
         
 class QArray(QAbstract):
@@ -149,6 +155,9 @@ class QArray(QAbstract):
         else: # return best_value, best_action
             idx = self.state_list.index(state)
             return max(self.q_function[idx]), np.argmax(self.q_function[idx])
+
+    def is_empty(self, struct):
+        return (struct != self.get_empty_structure()).all()
 
 
     def get_random_action(self, state):

@@ -58,7 +58,7 @@ class Option(object):
         else:
             self.reward_for_agent += reward
             total_reward = self.compute_total_reward(reward, end_option, new_state_blurred, lost_life = (self.lives > remaining_lives))
-            self.q.update_q_function_action_state(self.state, new_state, action, reward)
+            self.q.update_q_function_action_state(self.current_state, new_state, action, reward)
             self.q.update_q_function_value(self.current_state, action, total_reward, new_state)
             self.lives = remaining_lives
             return end_option
@@ -85,7 +85,7 @@ class Option(object):
             else:
                 total_reward += PENALTY_END_OPTION
         if lost_life:
-            print(lost_life)
+            print("lost life when using real option")
             self.reward_for_agent += PENALTY_LOST_LIFE
             total_reward += PENALTY_LOST_LIFE
             
@@ -100,6 +100,7 @@ class OptionExplore(object):
         self.initial_state_blurred = initial_state_blurred
         self.reward_for_agent = 0
         self.number_actions = number_actions
+        self.lives = None
 
     def __str__(self):
         return "explore option from " + str(self.initial_state_blurred)
@@ -118,10 +119,18 @@ class OptionExplore(object):
         """
         option ends iff it has found a new zone
         """
-        return new_state_blurred == self.initial_state_blurred
+        return new_state_blurred != self.initial_state_blurred
 
     def update_option(self, reward, new_state, new_state_blurred, action, remaining_lives):
+        if self.lives == None:
+            self.lives = remaining_lives
+
+        if self.lives > remaining_lives:
+            self.reward_for_agent += PENALTY_LOST_LIFE
+            print("lost life when exploring")
+            
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
+        self.lives = remaining_lives
         return self.check_end_option(new_state_blurred)
 
 
