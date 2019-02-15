@@ -21,12 +21,12 @@ The projection of the point should be the projection of the image to the zone of
 
 class AgentOption(): 
 
-    def __init__(self, state, number_actions, type_exploration, play):
+    def __init__(self, state_blurred, number_actions, type_exploration, play):
         self.number_actions = number_actions
-        self.last_action = 0 #last action : north, east, south, west ?
+#        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
-        self.state = state
-        self.q = QDict(self.state)
+        self.state_blurred = state_blurred
+        self.q = QDict(self.state_blurred)
         self.reward = 0
         self.type_exploration = type_exploration
         if not(play):
@@ -34,7 +34,7 @@ class AgentOption():
                 raise Exception("OptionExploreQ not implemented yet")
                 self.explore_option = OptionExploreQ(self.state, last_action = self.last_action) # special explore options
             elif type_exploration == "OptionExplore":
-                self.explore_option = OptionExplore(self.state, self.number_actions) # special explore options
+                self.explore_option = OptionExplore(self.state_blurred, self.number_actions) # special explore options
             else:
                 raise Exception("type_exploration unknown")
 
@@ -44,7 +44,7 @@ class AgentOption():
         
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
-        self.explore_option.initial_state = self.state
+        self.explore_option.initial_state_blurred = self.state_blurred
         if type(self.explore_option).__name__ == "OptionExploreQ":
             raise Exception("OptionExploreQ not implemented yet")
         
@@ -61,12 +61,12 @@ class AgentOption():
         #     self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
         #     self.explore_option.exploration_terminated.update({self.state : False})
         
-    def reset(self, initial_agent_state):
+    def reset(self, initial_agent_state_blurred):
         """
         Same as __init__ but the q function is preserved 
         """
         self.reward = 0
-        self.state = initial_agent_state
+        self.state_blurred = initial_agent_state_blurred
         self.reset_explore_option()
 
     def choose_option(self, t):
@@ -75,29 +75,29 @@ class AgentOption():
         else flip a coin, then take the best or explore
         """
         if self.play: # in this case we do not learn anymore
-            _, best_option = self.q.find_best_action(self.state)
+            _, best_option = self.q.find_best_action(self.state_blurred)
             best_option.play = True
             return best_option
 
         else:
             # No option available : explore, and do not count the number of explorations
-            if not(self.q.is_actions(self.state)): 
+            if not(self.q.is_actions(self.state_blurred)): 
                 self.reset_explore_option()
                 return self.explore_option
             
             # options are available : if the exploration is not done then continue exploring
             elif ((self.type_exploration == "OptionExploreQ" and
-                   not(self.explore_option.exploration_terminated[self.state])) or
+                   not(self.explore_option.exploration_terminated[self.state_blurred])) or
                   (self.type_exploration == "OptionExplore" and
-                   not(self.explore_option.check_end_option(self.state)))):
+                   not(self.explore_option.check_end_option(self.state_blurred)))):
                 self.reset_explore_option()
                 return self.explore_option
         
             # in this case find the best option
             else:
-                best_reward, best_option = self.q.find_best_action(self.state)
+                best_reward, best_option = self.q.find_best_action(self.state_blurred)
                 if best_reward == 0:
-                    best_option = self.q.get_random_action(self.state)
+                    best_option = self.q.get_random_action(self.state_blurred)
                     best_option.reward_for_agent = 0
                     return best_option
                 
@@ -105,7 +105,7 @@ class AgentOption():
                     best_option.reward_for_agent = 0
                     return best_option
 
-    def update_agent(self, new_state, option, action):
+    def update_agent(self, new_state, new_state_blurred, option, action):
         """
         In this order
         _update last action done
@@ -115,40 +115,37 @@ class AgentOption():
         _update the state
         """
         if self.play:
-            self.state = new_state
+            self.state_blurred = new_state_blurred
             
         else:
-            self.last_action = action
+#            self.last_action = action
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.reward += option.reward_for_agent
-            self.update_q_function_options(new_state, option, total_reward)
-            self.state = new_state
+            self.update_q_function_options(new_state, new_state_blurred, option, total_reward)
+            self.state_blurred = new_state_blurred
             
-    def update_q_function_options(self, new_state, option, reward):
-        """
-        only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
-        """
-        if self.no_return_update(new_state): #update or not given if the reverse option already exists
-            action = Option(self.number_actions, self.state, new_state, self.play)
-            # if the state and the action already exist, this line will do nothing
-            self.q.update_q_function_action_state(self.state, new_state, action, reward)
-            if option != self.explore_option:
-                self.q.update_q_function_value(self.state, option, reward, new_state)
-                
-    def no_return_update(self, new_state):
-        """[
-        (no return option)
-            does not add anything if 
-            for action in q[option.terminal_state]:
-            action.terminal_state = option.initial_state
-        """
-        if self.q.is_state(new_state):
-            new_state_idx = self.q.state_list.index(new_state)
-            for action in self.q.q_function[new_state_idx]:
-                if np.array_equal(action.terminal_state, self.state):
-                    return False
+    def update_q_function_options(self, new_state, new_state_blurred, option, reward):
+        #if self.no_return_update(new_state): #update or not given if the reverse option already exists
+        action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
+        # if the state and the action already exist, this line will do nothing
+        self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action, reward)
+        if option != self.explore_option:
+            self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
 
-        return True
+    # def no_return_update(self, new_state):
+    #     """[
+    #     (no return option)
+    #         does not add anything if 
+    #         for action in q[option.terminal_state]:
+    #         action.terminal_state = option.initial_state
+    #     """
+    #     if self.q.is_state(new_state):
+    #         new_state_idx = self.q.state_list.index(new_state)
+    #         for action in self.q.q_function[new_state_idx]:
+    #             if np.array_equal(action.terminal_state, self.state):
+    #                 return False
+
+    #     return True
     
     def record_reward(self, t):
         """

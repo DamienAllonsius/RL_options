@@ -19,22 +19,28 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
         self.zone_size_y = zone_size_y
         self.blurred = blurred
         
-    def render(self, size = (512, 512), mode = 'human', close = False):
+    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False):
         if hasattr(self.env.__class__, 'render_scaled'): # we call render_scaled function from gridenvs
             return self.env.render_scaled(size, mode, close)
          
         else: # we scale the image from other environment (like Atari)
             img = self.env.env.ale.getScreenRGB2()
-            if self.blurred:
-                img = self.make_downsampled_image(img)
-            img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
+            if blurred_render:
+                img_blurred = self.make_downsampled_image(img)
+                img_resized = cv2.resize(img_blurred, size, interpolation=cv2.INTER_NEAREST)
+                
+            else:
+                img_resized = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
+                
             if mode == 'rgb_array':
                 return img
+            
             elif mode == 'human':
                 from gym.envs.classic_control import rendering
                 if self.env.env.viewer is None:
                     self.env.env.viewer = rendering.SimpleImageViewer()
-                    self.env.env.viewer.imshow(img)
+                    
+                self.env.env.viewer.imshow(img_resized)
                 return self.env.env.viewer.isopen
 
     def make_downsampled_image(self, image):
@@ -48,13 +54,13 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
             raise Exception("The gridworld " + str(len_x) + "x" + str(len_y) +  " can not be fragmented into zones " + str(self.zone_size_x) + "x" + str(self.zone_size_y))
             
     def observation(self, observation):
-        #instead of returning a nested array, returnes a *blurred*, *nested* *tuple*
+        #instead of returning a nested array, returns a *blurred*, *nested* *tuple* : img_blurred_tuple. Returns also the hashed obersvation.
         if self.blurred:
             img_blurred = self.make_downsampled_image(observation)
             # transform the observation in tuple
             img_blurred_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_blurred)
             observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
-            return observation_tuple, img_blurred_tuple
+            return (hash(observation_tuple), img_blurred_tuple)
         
         else:
             return observation

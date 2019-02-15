@@ -17,12 +17,13 @@ def make_environment_agent(env_name, type_agent):
     
     if type_agent == "AgentOption":
         env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED)
-        _, initial_agent_state = env.reset() #first output : observation, second output : blurred observation
+        obs = env.reset() #first output : observation, second output : blurred observation
         type_exploration = "OptionExplore"
-        agent = AgentOption(state = initial_agent_state, number_actions = env.action_space.n, type_exploration = type_exploration, play = False)
-        return env, agent, initial_agent_state
+        agent = AgentOption(state_blurred = obs[1], number_actions = env.action_space.n, type_exploration = type_exploration, play = False)
+        return env, agent, obs[1]
         
     elif type_agent == "QAgent":
+        raise Exception("Not Implemented yet")
         env = gym.make(ENV_NAME)
         env.reset()
         initial_agent_position = env.get_hero_position()
@@ -33,8 +34,6 @@ def make_environment_agent(env_name, type_agent):
     else:
         raise Exception("agent name does not exist")
     
-
-
 def act_options(env, t, initial_setting):
     """
     0/ The agent chooses an option
@@ -47,28 +46,26 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = True
+    display_learning = t>10
     while not(done):
         if display_learning:
-            env.render()
-            #time.sleep(1)
+            env.render(blurred_render = True)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
-            #print(agent.q)
             running_option = True
                 
         # else, let the current option act
         action = option.act()
-        new_obs, new_obs_blurred, reward, done, _ = env.step(action)
-        end_option = option.update_option(reward, new_obs, new_obs_blurred, action)
+        obs, reward, done, info = env.step(action)
+        end_option = option.update_option(reward, obs[0], obs[1], action, info['ale.lives'])
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
             #agent.update_agent(new_position, new_agent_state, option, action)
             # In this case the option ended normally and the process continues
             running_option = False
-            agent.update_agent(new_obs_blurred, option, action)
+            agent.update_agent(obs[0], obs[1], option, action)
 
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
@@ -86,7 +83,6 @@ def act(env, t, initial_setting):
         new_state_id = info['state_id']
         agent.update(reward, new_position, action, new_state_id)
     
-
 def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARNING, seed = 0):
     
     np.random.seed(seed)
@@ -116,8 +112,6 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
     env.close()
     if not(play):
         return agent
-
-
 
 env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or input from command line 'GE_Montezuma-v1'
 type_agent = "AgentOption"

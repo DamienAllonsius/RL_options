@@ -12,26 +12,29 @@ class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
     """
-    def __init__(self, number_actions, initial_state, terminal_state, play):
+    def __init__(self, number_actions, initial_state_blurred, current_state, terminal_state_blurred, play):
         """
         here grid_size_option is the size of the zone 
+        state are always of high resolution except if stated otherwise in the variable name
         """
         self.play = play
         self.number_actions = number_actions
-        self.q = QArray(initial_state, number_actions)
-        self.initial_state = initial_state
-        self.terminal_state = terminal_state
+        self.q = QArray(current_state, number_actions)
+        self.initial_state_blurred = initial_state_blurred # blurred image
+        self.current_state = current_state # high resolution image
+        self.terminal_state_blurred = terminal_state_blurred # blurred image
         self.reward_for_agent = 0
+        self.lives = None
 
     def __repr__(self):
-        return "".join(["Option(", str(self.initial_state), ",", str(self.terminal_state), ")"])
+        return "".join(["Option(", str(self.initial_state_blurred), ",", str(self.terminal_state_blurred), ")"])
     
     def __str__(self):
-        return "option from " + str(self.initial_state) + " to " + str(self.terminal_state)
+        return "option from " + str(self.initial_state_blurred) + " to " + str(self.terminal_state_blurred)
 
     def __eq__(self, other_option):
         if type(other_option).__name__ == self.__class__.__name__:
-            return (self.initial_state == other_option.initial_state) and (self.terminal_state == other_option.terminal_state)
+            return (self.initial_state_blurred == other_option.initial_state_blurred) and (self.terminal_state_blurred == other_option.terminal_state_blurred)
         
         else:
             return False
@@ -40,54 +43,66 @@ class Option(object):
         """
         states are tuples
         """
-        return hash((self.initial_state, self.terminal_state))
-#    hash((tuple(self.initial_state), tuple(self.terminal_state)))
+        return hash((self.initial_state_blurred, self.terminal_state_blurred))
 
-    def check_end_option(self, new_state):
-        return new_state != self.initial_state
+    def check_end_option(self, new_state_blurred):
+        return new_state_blurred != self.initial_state_blurred
     
-    def update_option(self, reward, new_state, action):
+    def update_option(self, reward, new_state, new_state_blurred, action, remaining_lives):
+        if self.lives == None:
+            self.lives = remaining_lives
+        end_option = self.check_end_option(new_state_blurred)
         if self.play:
-            return self.check_end_option(new_state)
+            return end_option
 
         else:
             self.reward_for_agent += reward
-            total_reward = reward + PENALTY_OPTION_ACTION
-            end_option = self.check_end_option(new_state)
-            if end_option:
-                if new_state == self.terminal_state:
-                    total_reward += REWARD_END_OPTION
-                    
-                else:
-                    total_reward += PENALTY_END_OPTION
-
-            self.q.update_q_function_value(self.initial_state, action, total_reward, new_state)
+            total_reward = self.compute_total_reward(reward, end_option, new_state_blurred, lost_life = (self.lives > remaining_lives))
+            self.q.update_q_function_action_state(self.state, new_state, action, reward)
+            self.q.update_q_function_value(self.current_state, action, total_reward, new_state)
+            self.lives = remaining_lives
             return end_option
       
     def act(self):
         if self.play:
-            _, best_action = self.q.find_best_action(self.initial_state)
+            _, best_action = self.q.find_best_action(self.current_state)
 
         else:
             if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
                 best_action = np.random.randint(self.number_actions)
             
             else:
-                _, best_action = self.q.find_best_action(self.initial_state)
+                _, best_action = self.q.find_best_action(self.current_state)
             
         return best_action
+
+    def compute_total_reward(self, reward, end_option, new_state_blurred, lost_life):
+        total_reward = reward + PENALTY_OPTION_ACTION
+        if end_option:
+            if new_state_blurred == self.terminal_state_blurred:
+                total_reward += REWARD_END_OPTION
+                
+            else:
+                total_reward += PENALTY_END_OPTION
+        if lost_life:
+            print(lost_life)
+            self.reward_for_agent += PENALTY_LOST_LIFE
+            total_reward += PENALTY_LOST_LIFE
+            
+        return total_reward
+                
 
 class OptionExplore(object):
     """
     This is a special option to explore. No q_function is needed here.
     """
-    def __init__(self, initial_state, number_actions):
-        self.initial_state = initial_state
+    def __init__(self, initial_state_blurred, number_actions):
+        self.initial_state_blurred = initial_state_blurred
         self.reward_for_agent = 0
         self.number_actions = number_actions
 
     def __str__(self):
-        return "explore option from " + str(self.initial_state)
+        return "explore option from " + str(self.initial_state_blurred)
 
     def __eq__(self, other):
         return type(other).__name__ == self.__class__.__name__
@@ -99,55 +114,42 @@ class OptionExplore(object):
         # here we do a stupid thing: go random, until it finds a new zone
         return np.random.randint(self.number_actions)
     
-    def check_end_option(self, new_state):
+    def check_end_option(self, new_state_blurred):
         """
         option ends iff it has found a new zone
         """
-        return not(np.array_equal(new_state, self.initial_state))
+        return new_state_blurred == self.initial_state_blurred
 
-    def update_option(self, reward, new_state, action):
+    def update_option(self, reward, new_state, new_state_blurred, action, remaining_lives):
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
-        return self.check_end_option(new_state)
+        return self.check_end_option(new_state_blurred)
 
 
 class OptionExploreQ(Option):
     """
     refactoring, TODO
     """
-    def __init__(self, position, initial_state, grid_size_option, last_action):
-        raise Exception("not implimented yet")
-        self.grid_size_option = grid_size_option
-        self.number_state = grid_size_option.x * grid_size_option.y
-        self.number_actions = len(Direction.cardinal())
-        self.cardinal = self.get_cardinal(last_action)
-        self.position = self.get_position(position)
-        self.initial_state = initial_state
+    def __init__(self, number_actions, initial_state_blurred, current_state, last_action):
+        self.number_actions = number_actions
+        self.initial_state_blurred = initial_state_blurred
+        self.current_state = current_state
         self.reward_for_agent = 0
-        self.q = {}
-        self.exploration_terminated = {}
+        self.q = QArray(current_state)
+#        self.exploration_terminated = {}
 
     def __eq__(self, other):
         return type(other).__name__ == self.__class__.__name__
 
-    def get_cardinal(self, permutation = 0):
+    def get_permuted_actions(self, permutation = 0):
         """
         We want to optimize the exploration by starting exploring in the same direction which we entered in the zone
-        when permutation is
-        _ 0 (= North) -> cardinal = [North, East, West, South]
-        _ 1 (= East) -> cardinal = [East, South, North, West]
-        _ 2 (= South) -> cardinal = [South, East, West, North]
-        _ 3 (= West) -> cardinal = [West, North, South, East]
-
-        this can be obtained by permuting [North, East, South, West] with a cycle
-        and then transposing the last two elements of the list.
         """
-        cardinal = Direction.cardinal()
         permutated_cardinal = []
-        for k in range(self.number_actions):
-            permutated_cardinal.append(cardinal[(k + permutation) % self.number_actions])
+        permuted_actions = range(self.number_actions)
+        for act in permuted_actions:
+            permuted_actions.append((act + permutation) % self.number_actions)
 
-        permutated_cardinal[3], permutated_cardinal[2] = permutated_cardinal[2], permutated_cardinal[3]
-        return permutated_cardinal
+        return permuted_actions
     
     def update_option(self, reward, new_position, new_state, action):
         encoded_new_position = self.get_position(new_position)
