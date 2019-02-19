@@ -46,10 +46,10 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t>0
+    display_learning = t>200
     while not(done):
         if display_learning:
-            env.render(blurred_render = False)
+            env.render(blurred_render = True)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)

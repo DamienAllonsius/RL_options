@@ -56,13 +56,27 @@ class Option(object):
             return end_option
 
         else:
-            self.reward_for_agent += reward
+            self.reward_for_agent += reward 
             total_reward = self.compute_total_reward(reward, end_option, new_state_blurred, lost_life = (self.lives > remaining_lives))
-            self.q.update_q_function_action_state(self.current_state, new_state, action, reward)
+            self.q.update_q_function_action_state(self.current_state, new_state, action)
             self.q.update_q_function_value(self.current_state, action, total_reward, new_state)
             self.lives = remaining_lives
             return end_option
       
+    def compute_total_reward(self, reward, end_option, new_state_blurred, lost_life):
+        total_reward = reward + PENALTY_OPTION_ACTION
+        if end_option:
+            if new_state_blurred == self.terminal_state_blurred:
+                total_reward += REWARD_END_OPTION
+                
+            else:
+                total_reward += PENALTY_END_OPTION
+        if lost_life:
+            self.reward_for_agent += PENALTY_LOST_LIFE
+            total_reward += PENALTY_LOST_LIFE
+            
+        return total_reward
+
     def act(self):
         if self.play:
             _, best_action = self.q.find_best_action(self.current_state)
@@ -75,22 +89,6 @@ class Option(object):
                 _, best_action = self.q.find_best_action(self.current_state)
             
         return best_action
-
-    def compute_total_reward(self, reward, end_option, new_state_blurred, lost_life):
-        total_reward = reward + PENALTY_OPTION_ACTION
-        if end_option:
-            if new_state_blurred == self.terminal_state_blurred:
-                total_reward += REWARD_END_OPTION
-                
-            else:
-                total_reward += PENALTY_END_OPTION
-        if lost_life:
-            print("lost life when using real option")
-            self.reward_for_agent += PENALTY_LOST_LIFE
-            total_reward += PENALTY_LOST_LIFE
-            
-        return total_reward
-                
 
 class OptionExplore(object):
     """
@@ -127,68 +125,7 @@ class OptionExplore(object):
 
         if self.lives > remaining_lives:
             self.reward_for_agent += PENALTY_LOST_LIFE
-            print("lost life when exploring")
             
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
         self.lives = remaining_lives
         return self.check_end_option(new_state_blurred)
-
-
-class OptionExploreQ(Option):
-    """
-    refactoring, TODO
-    """
-    def __init__(self, number_actions, initial_state_blurred, current_state, last_action):
-        self.number_actions = number_actions
-        self.initial_state_blurred = initial_state_blurred
-        self.current_state = current_state
-        self.reward_for_agent = 0
-        self.q = QArray(current_state)
-#        self.exploration_terminated = {}
-
-    def __eq__(self, other):
-        return type(other).__name__ == self.__class__.__name__
-
-    def get_permuted_actions(self, permutation = 0):
-        """
-        We want to optimize the exploration by starting exploring in the same direction which we entered in the zone
-        """
-        permutated_cardinal = []
-        permuted_actions = range(self.number_actions)
-        for act in permuted_actions:
-            permuted_actions.append((act + permutation) % self.number_actions)
-
-        return permuted_actions
-    
-    def update_option(self, reward, new_position, new_state, action):
-        encoded_new_position = self.get_position(new_position)
-        encoded_action = self.encode_direction(action)
-        max_value_action = np.max(self.q[self.initial_state][self.position])
-        total_reward = PENALTY_OPTION_ACTION + reward
-        end_option = self.check_end_option(new_state)
-        self.reward_for_agent += PENALTY_OPTION_ACTION
-        self.q[self.initial_state][self.position, encoded_action] += total_reward
-        self.set_exploration_terminated()
-        self.position = encoded_new_position
-        return end_option
-
-    def set_exploration_terminated(self):
-        """
-        the exploration is terminated if for ALL states, the actions are : 
-        - either [0, 0, 0, 0] (this would correspond to a wall for example)
-        - either [-1, -3, -4, -11] (all the actions have been tried)
-        """
-        if not(self.exploration_terminated[self.initial_state]):
-            # change only if it is false. Otherwise leave it at True
-            for actions in self.q[self.initial_state]:
-               terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
-               if not(terminated):
-                   self.exploration_terminated[self.initial_state] = False
-                   return
-            self.exploration_terminated[self.initial_state] = True
-            print("exploration done -> state " + str(self.initial_state))
-            
-    def act(self):
-        current_q_function = self.q[self.initial_state]
-        max_value_action = np.argmax(current_q_function[self.position])
-        return self.cardinal[max_value_action]

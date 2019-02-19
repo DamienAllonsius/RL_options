@@ -106,7 +106,7 @@ class QDict(QAbstract):
             raise Exception("action cannot be added since state does not exist")
 
         else:
-            self.q_function[self.state_list.index(state)].update({action : reward})
+            self.q_function[self.state_list.index(state)].update({action : 0}) 
         
     def find_best_action(self, state):
         if not(self.is_state(state)):

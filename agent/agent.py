@@ -4,19 +4,12 @@ from gridenvs.keyboard_controller import Controls, Key
 from gridenvs.utils import Point
 import numpy as np
 import time
-from agent.option import Option, OptionExplore, OptionExploreQ
+from agent.option import Option, OptionExplore
 from agent.q import QDict, QArray
 from variables import *
 from data.save import SaveData
 """
 TODO for pix. 
-
-Some ideas: 
-
-the agent state can be easily replaced by a set of pixels (N.B: make a function to compute the zones in main.py)
-for the option, we should first go to a previous commit to set the q function as a dict as before.
-No more tabular q function in the case of a pixel based policy.
-The projection of the point should be the projection of the image to the zone of interest.
 """
 
 class AgentOption(): 
@@ -30,11 +23,9 @@ class AgentOption():
         self.reward = 0
         self.type_exploration = type_exploration
         if not(play):
-            if type_exploration == "OptionExploreQ":
-                raise Exception("OptionExploreQ not implemented yet")
-                self.explore_option = OptionExploreQ(self.state, last_action = self.last_action) # special explore options
-            elif type_exploration == "OptionExplore":
+            if type_exploration == "OptionExplore":
                 self.explore_option = OptionExplore(self.state_blurred, self.number_actions) # special explore options
+                
             else:
                 raise Exception("type_exploration unknown")
 
@@ -45,21 +36,6 @@ class AgentOption():
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
         self.explore_option.initial_state_blurred = self.state_blurred
-        if type(self.explore_option).__name__ == "OptionExploreQ":
-            raise Exception("OptionExploreQ not implemented yet")
-        
-        """
-        TODO : refactor this
-        """
-        # self.explore_option.position = self.explore_option.get_position(self.position)
-        # self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
-        # # if this state is explored for the first time : make a new q function full of zeros
-        # # and set the exploration_terminated boolean for this state to False
-        # try:
-        #     self.explore_option.q[self.state]
-        # except:
-        #     self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
-        #     self.explore_option.exploration_terminated.update({self.state : False})
         
     def reset(self, initial_agent_state_blurred):
         """
@@ -81,15 +57,13 @@ class AgentOption():
 
         else:
             # No option available : explore, and do not count the number of explorations
-            if not(self.q.is_actions(self.state_blurred)): 
+            if not(self.q.is_actions(self.state_blurred)):
                 self.reset_explore_option()
                 return self.explore_option
             
             # options are available : if the exploration is not done then continue exploring
-            elif ((self.type_exploration == "OptionExploreQ" and
-                   not(self.explore_option.exploration_terminated[self.state_blurred])) or
-                  (self.type_exploration == "OptionExplore" and
-                   not(self.explore_option.check_end_option(self.state_blurred)))):
+            elif (self.type_exploration == "OptionExplore" and
+                  not(self.explore_option.check_end_option(self.state_blurred))):
                 self.reset_explore_option()
                 return self.explore_option
         
@@ -130,12 +104,12 @@ class AgentOption():
         if True:#self.no_return_update(new_state): #update or not given if the reverse option already exists
             action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
             # if the state and the action already exist, this line will do nothing
-            self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action, reward)
+            self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)
             if option != self.explore_option:
                 self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
 
     def no_return_update(self, new_state):
-        """[
+        """
         (no return option)
             does not add anything if 
             for action in q[option.terminal_state]:
