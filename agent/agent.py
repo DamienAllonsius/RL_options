@@ -101,7 +101,7 @@ class AgentOption():
             self.state_blurred = new_state_blurred
             
     def update_q_function_options(self, new_state, new_state_blurred, option, reward):
-        if True:#self.no_return_update(new_state): #update or not given if the reverse option already exists
+        if self.no_return_update(new_state): #update or not given if the reverse option already exists
             action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)

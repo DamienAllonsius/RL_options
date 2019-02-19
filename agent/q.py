@@ -26,18 +26,6 @@ class QAbstract(object):
                 
         return message
 
-    # def get_index(self, element):
-    #     """
-    #     This method has to be used to get the index of a state in state_list.
-    #     Indeed, as the environment returns np.array as observations, self.state_list is of type list of arrays.
-    #     In this case self.state_list.index does not work.
-    #     """
-    #     indx = -1
-    #     for arr in self.state_list:
-    #         indx += 1
-    #         if np.array_equal(arr, element):
-    #             return indx
-
     def is_state(self, state):
         return state in self.state_list
 
@@ -59,14 +47,14 @@ class QAbstract(object):
             self.state_list.append(state)
             self.q_function.append(self.get_empty_structure())
         
-    def add_action_to_state(self, state, action, reward = 0):
+    def add_action_to_state(self, state, action):
         raise Exception("Not Implemented")
         
     def find_best_action(self, state):
         raise Exception("Not Implemented")
 
-    def update_q_function_action_state(self, state, new_state, action, reward):
-        self.add_action_to_state(state, action, reward)
+    def update_q_function_action_state(self, state, new_state, action):
+        self.add_action_to_state(state, action)
         self.add_state(new_state)
 
     def update_q_function_value(self, state, action, reward, new_state):
@@ -101,7 +89,7 @@ class QDict(QAbstract):
     def get_empty_structure(self):
         return {}
 
-    def add_action_to_state(self, state, action, reward = 0):
+    def add_action_to_state(self, state, action):
         if not(self.is_state(state)):
             raise Exception("action cannot be added since state does not exist")
 
@@ -141,12 +129,8 @@ class QArray(QAbstract):
     def get_empty_structure(self):
         return np.zeros(self.number_actions)
 
-    def add_action_to_state(self, state, action, reward = 0):
-        if not(self.is_state(state)):
-            raise Exception("action cannot be added since state does not exist")
-
-        else:
-            self.q_function[self.state_list.index(state)][action] = reward
+    def add_action_to_state(self, state, action):
+        pass
         
     def find_best_action(self, state):
         if not(self.is_state(state)):
@@ -155,10 +139,12 @@ class QArray(QAbstract):
         else: # return best_value, best_action
             idx = self.state_list.index(state)
             return max(self.q_function[idx]), np.argmax(self.q_function[idx])
-
-    def is_empty(self, struct):
-        return (struct != self.get_empty_structure()).all()
-
+    
+    def is_actions(self, state):
+        return True
+    
+    def is_action_to_state(self, state, action):
+        return True
 
     def get_random_action(self, state):
         """

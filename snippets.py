@@ -19,18 +19,19 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
         self.zone_size_y = zone_size_y
         self.blurred = blurred
         
-    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False):
+    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False, gray_scale = False):
         if hasattr(self.env.__class__, 'render_scaled'): # we call render_scaled function from gridenvs
             return self.env.render_scaled(size, mode, close)
          
         else: # we scale the image from other environment (like Atari)
             img = self.env.env.ale.getScreenRGB2()
             if blurred_render:
-                img_blurred = self.make_downsampled_image(img)
-                img_resized = cv2.resize(img_blurred, size, interpolation=cv2.INTER_NEAREST)
+                img = self.make_downsampled_image(img)
                 
-            else:
-                img_resized = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
+            if gray_scale:
+                img = self.make_gray_scale(img)
+                
+            img_resized = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
                 
             if mode == 'rgb_array':
                 return img
@@ -65,15 +66,14 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
         else:
             return observation
 
-        # gray scale ?
-        #             if self.number_gray_colors:
-        #                 for j in range(size_x_image_blurred):
-        #                     for i in range(size_y_image_blurred):
-        #                         rgb = image_blurred[i][j]
-        #                         gray_level = (255 * 3) // self.number_gray_colors
-        #                         sum_rgb = (sum(rgb) // gray_level) * gray_level
-        #                         image_blurred[i][j] = [sum_rgb] * 3
-        #             return image_blurred
+    def make_gray_scale(self, image, number_gray_colors = 5):
+        for i in range(len(image)):
+            for j in range(len(image[0])):
+                rgb = image[i][j]
+                gray_level = (255 * 3) // number_gray_colors
+                sum_rgb = (sum(rgb) // gray_level) * gray_level
+                image[i][j] = [sum_rgb] * 3
+        return image
 
 """
 env = ObservationZoneWrapper(gym.make(ENV_NAME),  zone_size_x = 1, zone_size_y = 1, blurred = True)
