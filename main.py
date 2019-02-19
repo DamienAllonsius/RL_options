@@ -9,15 +9,13 @@ from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import * 
 
-def make_environment_agent(env_name, type_agent, blurred_bool = False, number_gray_colors = NUMBER_GRAY_COLORS):
+def make_environment_agent(env_name, type_agent, number_gray_colors = NUMBER_GRAY_COLORS):
     """
     type_agent parameter should be "AgentOption" or "QAgent"
     """
     
     env = gym.make(env_name)
-    env.set_zone_size(ZONE_SIZE_X, ZONE_SIZE_Y)
     env.reset()
-    env.blurred = blurred_bool
     env.number_gray_colors = number_gray_colors
     agent_position = env.get_hero_position()
     agent_state = (env.get_hero_zone(), 0)
@@ -49,7 +47,7 @@ def action_options(env, action, t):
     running_option = False
     #start the loop
     done = False
-    display_learning = False
+    display_learning = True
     while not(done):
         if display_learning:
             env.render_scaled()
@@ -129,10 +127,10 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
 
 
 env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or input from command line 'GE_Montezuma-v1'
-type_agent = "QAgent"
+type_agent = "AgentOption"
 
 for seed in range(NUMBER_SEEDS):
-    env, agent = make_environment_agent(env_name, blurred_bool = False, type_agent = type_agent)
+    env, agent = make_environment_agent(env_name, type_agent = type_agent)
     INITIAL_AGENT_POSITION = agent.position
     
     if type_agent == "AgentOption":
