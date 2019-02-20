@@ -13,13 +13,14 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
     """
     to be used with class ZonesEnv
     """
-    def __init__(self, env, zone_size_x, zone_size_y, blurred):
+    def __init__(self, env, zone_size_x, zone_size_y, blurred, gray_scale = False):
         super(gym.ObservationWrapper, self).__init__(env)
         self.zone_size_x = zone_size_x
         self.zone_size_y = zone_size_y
         self.blurred = blurred
+        self.gray_scale = gray_scale
         
-    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False, gray_scale = False):
+    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False):
         if hasattr(self.env.__class__, 'render_scaled'): # we call render_scaled function from gridenvs
             return self.env.render_scaled(size, mode, close)
          
@@ -28,7 +29,7 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
             if blurred_render:
                 img = self.make_downsampled_image(img)
                 
-            if gray_scale:
+            if self.gray_scale:
                 img = self.make_gray_scale(img)
                 
             img_resized = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
@@ -51,28 +52,36 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
             downsampled_size = (len_x // self.zone_size_x , len_y // self.zone_size_y)
             img_blurred = cv2.resize(image, downsampled_size, interpolation=cv2.INTER_AREA) # vector of size "downsampled_size"
             return img_blurred
+        
         else:
             raise Exception("The gridworld " + str(len_x) + "x" + str(len_y) +  " can not be fragmented into zones " + str(self.zone_size_x) + "x" + str(self.zone_size_y))
             
     def observation(self, observation):
         #instead of returning a nested array, returns a *blurred*, *nested* *tuple* : img_blurred_tuple. Returns also the hashed obersvation.
-        if self.blurred:
-            img_blurred = self.make_downsampled_image(observation)
-            # transform the observation in tuple
-            img_blurred_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_blurred)
-            observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
-            return (hash(observation_tuple), img_blurred_tuple)
-        
-        else:
+        img = observation.copy()
+        if not(self.blurred or self.gray_scale):
             return observation
 
-    def make_gray_scale(self, image, number_gray_colors = 5):
+        else:
+            if self.blurred:
+                img = self.make_downsampled_image(img)
+
+            if self.gray_scale:
+                img = self.make_gray_scale(img)
+            
+            # transform the observation in tuple
+            img_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img)
+            observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
+            return hash(observation_tuple), hash(img_tuple)
+
+    def make_gray_scale(self, image):
         for i in range(len(image)):
             for j in range(len(image[0])):
                 rgb = image[i][j]
-                gray_level = (255 * 3) // number_gray_colors
+                gray_level = (255 * 3) // NUMBER_GRAY_COLORS
                 sum_rgb = (sum(rgb) // gray_level) * gray_level
                 image[i][j] = [sum_rgb] * 3
+                
         return image
 
 """

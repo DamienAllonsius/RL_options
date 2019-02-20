@@ -8,7 +8,7 @@ from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import *
-from snippets import ObservationZoneWrapper # TODO : make a proper file dedicated to wrappers
+from wrappers.obs import ObservationZoneWrapper # TODO : make a proper file dedicated to wrappers
 
 def make_environment_agent(env_name, type_agent):
     """
@@ -16,10 +16,11 @@ def make_environment_agent(env_name, type_agent):
     """
     
     if type_agent == "AgentOption":
-        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED)
+        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED, gray_scale = GRAY_SCALE)
         obs = env.reset() #first output : observation, second output : blurred observation
         type_exploration = "OptionExplore"
-        agent = AgentOption(state_blurred = obs[1], number_actions = env.action_space.n, type_exploration = type_exploration, play = False)
+        number_actions = env.action_space.n
+        agent = AgentOption(state_blurred = obs[1], number_actions = number_actions, type_exploration = type_exploration, play = False)
         return env, agent, obs[1]
         
     elif type_agent == "QAgent":
@@ -46,10 +47,10 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t>0
+    display_learning = t > 780
     while not(done):
         if display_learning:
-            env.render(blurred_render = ((t+1) % 2))
+            env.render(blurred_render = False)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
@@ -95,6 +96,8 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
         wait = input("PRESS ENTER TO PLAY.")
         
     for t in tqdm(range(1, iteration + 1)):
+        if t > 780:
+            toto = input()
         # reset the parameters
         env.reset()
         if type(agent).__name__ == "AgentOption":

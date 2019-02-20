@@ -43,7 +43,7 @@ class Option(object):
         """
         states are tuples
         """
-        return hash((self.initial_state_blurred, self.terminal_state_blurred))
+        return self.initial_state_blurred + self.terminal_state_blurred
 
     def check_end_option(self, new_state_blurred):
         return new_state_blurred != self.initial_state_blurred
@@ -51,6 +51,7 @@ class Option(object):
     def update_option(self, reward, new_state, new_state_blurred, action, remaining_lives):
         if self.lives == None:
             self.lives = remaining_lives
+            
         end_option = self.check_end_option(new_state_blurred)
         if self.play:
             return end_option
@@ -68,9 +69,12 @@ class Option(object):
         if end_option:
             if new_state_blurred == self.terminal_state_blurred:
                 total_reward += REWARD_END_OPTION
+                print("option terminated correctly")
                 
             else:
                 total_reward += PENALTY_END_OPTION
+                print("missed")
+                
         if lost_life:
             self.reward_for_agent += PENALTY_LOST_LIFE
             total_reward += PENALTY_LOST_LIFE

@@ -105,6 +105,7 @@ class AgentOption():
             action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)
+            print("number options " + str(len(self.q.q_function)))
             if option != self.explore_option:
                 self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
 
@@ -115,6 +116,7 @@ class AgentOption():
             for action in q[option.terminal_state]:
             action.terminal_state = option.initial_state
         """
+        return True
         if self.q.is_state(new_state):
             new_state_idx = self.q.state_list.index(new_state)
             for action in self.q.q_function[new_state_idx]:
