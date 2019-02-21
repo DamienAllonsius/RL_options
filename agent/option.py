@@ -149,6 +149,9 @@ class OptionExploreQ(Option):
     def __eq__(self, other):
         return type(other).__name__ == self.__class__.__name__
 
+    def __str__(self):
+        return "explore option with Q function from " + str(self.initial_state)
+    
     def get_cardinal(self, permutation = 0):
         """
         We want to optimize the exploration by starting exploring in the same direction which we entered in the zone
@@ -174,7 +177,7 @@ class OptionExploreQ(Option):
         encoded_new_position = self.get_position(new_position)
         encoded_action = self.encode_direction(action)
         max_value_action = np.max(self.q[self.initial_state][self.position])
-        total_reward = PENALTY_OPTION_ACTION + reward
+        total_reward = PENALTY_OPTION_ACTION 
         end_option = self.check_end_option(new_state)
         self.reward_for_agent += PENALTY_OPTION_ACTION
         self.q[self.initial_state][self.position, encoded_action] += total_reward
@@ -188,16 +191,15 @@ class OptionExploreQ(Option):
         - either [0, 0, 0, 0] (this would correspond to a wall for example)
         - either [-1, -3, -4, -11] (all the actions have been tried)
         """
-        initial_zone = self.initial_state[0]
-        if not(self.exploration_terminated[initial_zone]):
+        if not(self.exploration_terminated[self.initial_state]):
             # change only if it is false. Otherwise leave it at True
             for actions in self.q[self.initial_state]:
                terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
                if not(terminated):
-                   self.exploration_terminated[initial_zone] = False
+                   self.exploration_terminated[self.initial_state] = False
                    return
-            self.exploration_terminated[initial_zone] = True
-            print("exploration done -> state " + str(initial_zone))
+            self.exploration_terminated[self.initial_state] = True
+            print("exploration done -> state " + str(self.initial_state))
             
     def act(self):
         current_q_function = self.q[self.initial_state]

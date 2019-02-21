@@ -41,7 +41,7 @@ class AgentOption():
                 self.explore_option.q[self.state]
             except:
                 self.explore_option.q.update({self.state : np.zeros((self.explore_option.number_state, self.explore_option.number_actions))})
-                self.explore_option.exploration_terminated.update({self.state[0] : False})
+                self.explore_option.exploration_terminated.update({self.state : False})
         
         
     def reset(self, initial_agent_position, initial_agent_state):
@@ -72,10 +72,10 @@ class AgentOption():
     
             # options are available : if the exploration is not done then continue exploring
             elif (type(self.explore_option).__name__ == "OptionExploreQ"
-                  and not(self.explore_option.exploration_terminated[self.state[0]])):
+                  and not(self.explore_option.exploration_terminated[self.state])):
                 self.reset_explore_option()
                 return self.explore_option
-        
+
             # in this case find the best option
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
@@ -109,7 +109,7 @@ class AgentOption():
         only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
         """
         if self.no_return_update(new_state):
-            assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one"
+            assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
             action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_dict_action_space(self.state, new_state, action, reward)
@@ -225,7 +225,7 @@ class QAgent(object):
             best_action = np.argmax(self.q[self.position])
 
         else:
-            if np.random.rand() < PROBABILITY_EXPLORE_FOR_QAGENT  * (1 - t / ITERATION_LEARNING):
+            if np.random.rand() < PROBABILITY_EXPLORE_FOR_QAGENT * (1 - t / ITERATION_LEARNING):
                 best_action = np.random.randint(self.number_actions)
             
             else:

@@ -34,7 +34,7 @@ def make_environment_agent(env_name, type_agent, number_gray_colors = NUMBER_GRA
     return env, agent
 
 
-def action_options(env, action, t):
+def action_options(env, action, t, play):
     """
     0/ The agent chooses an option
     1/ The option makes the action
@@ -47,14 +47,18 @@ def action_options(env, action, t):
     running_option = False
     #start the loop
     done = False
-    display_learning = True
+    display_learning = False
     while not(done):
-        if display_learning:
+        if display_learning or play:
             env.render_scaled()
-            #time.sleep(1)
+            if play:
+                time.sleep(0.3)
+                
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
+            print("option chosen : " +str(option))
+            #time.sleep(2)
             #print(agent.q)
             running_option = True
                 
@@ -77,14 +81,16 @@ def action_options(env, action, t):
                 running_option = False
                 agent.update_agent(new_position, new_state, option, action)
 
-def action(env, action, t):
+def action(env, action, t, play):
     agent.reset(INITIAL_AGENT_POSITION)
     done = False
-    display_learning = False
+    display_learning = True
     #start the loop
     while not(done):
-        if display_learning:
-            #time.sleep(.2)
+        if display_learning or play:
+            if play:
+                time.sleep(.2)
+                
             env.render_scaled()
                 
         action = agent.act(t)
@@ -94,11 +100,11 @@ def action(env, action, t):
         agent.update(reward, new_position, action, new_state_id)
     
 
-def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
-    
+def learn_or_play(env, agent, play, seed = 0):
+    iteration = ITERATION_LEARNING
     np.random.seed(seed)
     agent.play = play
-    agent.make_save_data(seed)
+    #agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -109,16 +115,14 @@ def learn_or_play(env, agent, play, iteration = ITERATION_LEARNING, seed = 0):
         # reset the parameters
         env.reset()
         if type(agent).__name__ == "AgentOption":
-            action_options(env, action, t)
+            action_options(env, action, t, play)
             
         elif type(agent).__name__ == "QAgent":
-            action(env, action, t)
+            action(env, action, t, play)
       
-        if(not(play)):
+        #if(not(play)):
+        if False:
             agent.record_reward(t)
-    if play:
-        env.render_scaled()
-        time.sleep(1)
         
     env.close()
     if not(play):
@@ -135,14 +139,14 @@ for seed in range(NUMBER_SEEDS):
     
     if type_agent == "AgentOption":
         INITIAL_AGENT_STATE = agent.state
-        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
-        #learn_or_play_options(env, agent_learned, play = True)
+        agent_learned = learn_or_play(env, agent, play = False, seed = seed)
+        learn_or_play(env, agent_learned, play = True)
         
     elif type_agent == "QAgent":
-        agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed)
-        #learn_or_play(env, agent_learned, play = True)
+        agent_learned = learn_or_play(env, agent, play = False, seed = seed)
+        learn_or_play(env, agent_learned, play = True)
         
     else:
         raise Exception("agent name does not exist")
     
-agent_learned.save_data.plot_data()
+#agent_learned.save_data.plot_data()
