@@ -139,6 +139,7 @@ for seed in range(NUMBER_SEEDS):
     if type_agent == "AgentOption":
         INITIAL_AGENT_STATE = agent.state
         agent_learned = learn_or_play(env, agent, play = False, seed = seed)
+        #agent_learned.display_tree()
         learn_or_play(env, agent_learned, play = True)
         
     elif type_agent == "QAgent":

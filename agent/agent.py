@@ -8,6 +8,7 @@ from agent.option import Option, OptionExplore, OptionExploreQ
 from agent.q import Q
 from variables import *
 from data.save import SaveData
+from planning.tree import Tree
 
 class AgentOption(): 
 
@@ -22,12 +23,17 @@ class AgentOption():
         self.q = Q(self.state)
         self.position = position
         self.reward = 0
+        self.node = Node(state)
         if not(play):
             self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
 #            self.explore_option = OptionExplore(self.state) # special explore options
 
     def make_save_data(self, seed):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
+
+    def display_tree(self):
+        print(self.node.find_root().str_node())
+        time.sleep(1)
         
     def reset_explore_option(self):
         self.explore_option.reward = 0
@@ -48,6 +54,8 @@ class AgentOption():
         """
         Same as __init__ but the q function is preserved 
         """
+        self.display_tree()
+        self.node = self.node.find_root()
         self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
@@ -81,16 +89,13 @@ class AgentOption():
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
                     best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
-                    best_option.position = best_option.get_position(self.position)
-                    best_option.reward = 0
-                    return best_option
-                
-                else:
-                    best_option.position = best_option.get_position(self.position)
-                    best_option.reward = 0
-                    return best_option
+
+                best_option.position = best_option.get_position(self.position)
+                best_option.reward = 0
+                return best_option
                         
     def update_agent(self, new_position, new_state, option, action):
+        self.node = self.node.add(new_state)
         if self.play:
             self.state = new_state
             self.position = new_position
