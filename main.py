@@ -57,7 +57,6 @@ def action_options(env, action, t, play):
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
-            print("option chosen : " +str(option))
             #time.sleep(2)
             #print(agent.q)
             running_option = True
@@ -84,7 +83,7 @@ def action_options(env, action, t, play):
 def action(env, action, t, play):
     agent.reset(INITIAL_AGENT_POSITION)
     done = False
-    display_learning = True
+    display_learning = False
     #start the loop
     while not(done):
         if display_learning or play:

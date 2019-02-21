@@ -91,7 +91,6 @@ class AgentOption():
                     return best_option
                         
     def update_agent(self, new_position, new_state, option, action):
-        print(self.q)
         if self.play:
             self.state = new_state
             self.position = new_position
