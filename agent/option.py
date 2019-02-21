@@ -127,6 +127,8 @@ class OptionExplore(object):
         return new_state != self.initial_state
 
     def update_option(self, reward, new_position, new_state, action):
+        print("option state " + str(self.initial_state))
+        print("option new_state " + str(new_state))
         self.reward_for_agent += PENALTY_OPTION_ACTION
         return self.check_end_option(new_state)
 
@@ -159,6 +161,7 @@ class OptionExploreQ(Option):
         this can be obtained by permuting [North, East, South, West] with a cycle
         and then transposing the last two elements of the list.
         """
+        #return Direction.cardinal()
         cardinal = Direction.cardinal()
         permutated_cardinal = []
         for k in range(self.number_actions):
@@ -185,15 +188,16 @@ class OptionExploreQ(Option):
         - either [0, 0, 0, 0] (this would correspond to a wall for example)
         - either [-1, -3, -4, -11] (all the actions have been tried)
         """
-        if not(self.exploration_terminated[self.initial_state]):
+        initial_zone = self.initial_state[0]
+        if not(self.exploration_terminated[initial_zone]):
             # change only if it is false. Otherwise leave it at True
             for actions in self.q[self.initial_state]:
                terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
                if not(terminated):
-                   self.exploration_terminated[self.initial_state] = False
+                   self.exploration_terminated[initial_zone] = False
                    return
-            self.exploration_terminated[self.initial_state] = True
-            print("exploration done -> state " + str(self.initial_state))
+            self.exploration_terminated[initial_zone] = True
+            print("exploration done -> state " + str(initial_zone))
             
     def act(self):
         current_q_function = self.q[self.initial_state]
