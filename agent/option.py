@@ -8,6 +8,44 @@ import time
 import numpy as np
 from variables import *
 
+"""
+TODO : all the Option classes have now to inherit from OptionAbstract class.
+"""
+
+class OptionAbstract(object):
+    """
+    Abstract option class that barely only needs an update function and an act function
+    """
+    def __init__(self, initial_state, terminal_state, play = False):
+        self.initial_state = initial_state
+        self.terminal_state = terminal_state
+        self.play = play
+
+    def __eq__(self, other_option):
+        if type(other_option).__name__ == self.__class__.__name__:
+            return (self.initial_state == other_option.initial_state) and (self.terminal_state == other_option.terminal_state)
+        
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self.initial_state, self.terminal_state))
+    
+    def check_end_option(self, new_state):
+        return new_state != self.initial_state
+
+    def update_option(self, reward, new_position, new_state, action):
+        raise Exception("Not Implemented")
+
+     def act(self):
+         raise Exception("Not Implemented")
+
+class OptionDQN(OptionAbstract):
+    """
+    TODO : @lorenzosteccanella
+    """
+    pass
+     
 class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
