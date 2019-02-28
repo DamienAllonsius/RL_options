@@ -8,7 +8,7 @@ from agent.option import Option, OptionExplore, OptionExploreQ
 from agent.q import Q
 from variables import *
 from data.save import SaveData
-from planning.tree import Tree
+from planning.tree import Node
 
 class AgentOption(): 
 
