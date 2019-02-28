@@ -16,7 +16,7 @@ def make_environment_agent(env_name, type_agent):
     """
     
     if type_agent == "AgentOption":
-        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED, gray_scale = GRAY_SCALE)
+        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED, gray_scale = GRAY_SCALE, number_gray_colors = NUMBER_GRAY_COLORS)
         obs = env.reset() #first output : observation, second output : blurred observation
         type_exploration = "OptionExplore"
         number_actions = env.action_space.n
