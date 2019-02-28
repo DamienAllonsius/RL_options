@@ -29,9 +29,9 @@ class AgentOption():
             else:
                 raise Exception("type_exploration unknown")
 
-    def make_save_data(self, seed):
-        #TODO : monitor ?
-        self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
+    # def make_save_data(self, seed):
+    #     #TODO : monitor ?
+    #     self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
         
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
@@ -125,14 +125,14 @@ class AgentOption():
 
         return True
     
-    def record_reward(self, t):
-        """
-        save the reward in a file following this pattern:
-        iteration_1 reward_1
-        iteration_2 reward_2
-        iteration_3 reward_3
-        """
-        self.save_data.record_data(t, self.reward)
+    # def record_reward(self, t):
+    #     """
+    #     save the reward in a file following this pattern:
+    #     iteration_1 reward_1
+    #     iteration_2 reward_2
+    #     iteration_3 reward_3
+    #     """
+    #     self.save_data.record_data(t, self.reward)
 
 class KeyboardAgent(object):
     def __init__(self, env, controls={**Controls.Arrows, **Controls.KeyPad}):

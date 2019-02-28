@@ -20,16 +20,18 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
         self.blurred = blurred
         self.gray_scale = gray_scale
         
-    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False):
+    def render(self, size = (512, 512), mode = 'human', close = False, blurred_render = False, gray_scale = False):
         if hasattr(self.env.__class__, 'render_scaled'): # we call render_scaled function from gridenvs
             return self.env.render_scaled(size, mode, close)
          
         else: # we scale the image from other environment (like Atari)
             img = self.env.env.ale.getScreenRGB2()
+            #cut-off of the image
+            img = img[50:180] #size: 130
             if blurred_render:
                 img = self.make_downsampled_image(img)
                 
-            if self.gray_scale:
+            if gray_scale:
                 img = self.make_gray_scale(img)
                 
             img_resized = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
@@ -59,20 +61,21 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
     def observation(self, observation):
         #instead of returning a nested array, returns a *blurred*, *nested* *tuple* : img_blurred_tuple. Returns also the hashed obersvation.
         img = observation.copy()
-        if not(self.blurred or self.gray_scale):
-            return observation
+        #cut-off of the image
+        img = img[50:180] #size: 130
+        observation = observation[50:181]
 
-        else:
+        if (self.blurred or self.gray_scale):
             if self.blurred:
                 img = self.make_downsampled_image(img)
 
             if self.gray_scale:
                 img = self.make_gray_scale(img)
             
-            # transform the observation in tuple
-            img_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img)
-            observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
-            return hash(observation_tuple), hash(img_tuple)
+        # transform the observation in tuple
+        img_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img)
+        observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
+        return hash(observation_tuple), hash(img_tuple)
 
     def make_gray_scale(self, image):
         for i in range(len(image)):

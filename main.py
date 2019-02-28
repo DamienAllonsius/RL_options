@@ -47,10 +47,10 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t > 780
+    display_learning = t > 0
     while not(done):
         if display_learning:
-            env.render(blurred_render = False)
+            env.render(blurred_render = False, gray_scale = False)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
@@ -88,7 +88,7 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
     
     np.random.seed(seed)
     agent.play = play
-    agent.make_save_data(seed)
+#    agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -96,8 +96,6 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
         wait = input("PRESS ENTER TO PLAY.")
         
     for t in tqdm(range(1, iteration + 1)):
-        if t > 780:
-            toto = input()
         # reset the parameters
         env.reset()
         if type(agent).__name__ == "AgentOption":
@@ -106,8 +104,8 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
         elif type(agent).__name__ == "QAgent":
             act(env, t, initial_setting)
       
-        if(not(play)):
-            agent.record_reward(t)
+        # if(not(play)):
+        #     agent.record_reward(t)
     if play:
         env.render_scaled()
         time.sleep(1)
@@ -123,4 +121,4 @@ for seed in range(NUMBER_SEEDS):
     env, agent, initial_setting = make_environment_agent(env_name, type_agent = type_agent)
     agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed, initial_setting = initial_setting)
     
-agent_learned.save_data.plot_data()
+#agent_learned.save_data.plot_data()
