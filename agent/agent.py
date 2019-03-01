@@ -8,7 +8,7 @@ from agent.option import Option, OptionExplore, OptionExploreQ
 from agent.q import Q
 from variables import *
 from data.save import SaveData
-from planning.tree import Tree
+from planning.tree import Node, Tree
 
 class AgentOption(): 
 
@@ -23,7 +23,8 @@ class AgentOption():
         self.q = Q(self.state)
         self.position = position
         self.reward = 0
-        self.node = Node(state)
+        self.current_node = Node(state)
+        self.tree = Tree(state)
         if not(play):
             self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
 #            self.explore_option = OptionExplore(self.state) # special explore options
@@ -32,8 +33,7 @@ class AgentOption():
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
 
     def display_tree(self):
-        print(self.node.find_root().str_node())
-        time.sleep(1)
+        print(self.tree.str_tree())
         
     def reset_explore_option(self):
         self.explore_option.reward = 0
@@ -55,7 +55,8 @@ class AgentOption():
         Same as __init__ but the q function is preserved 
         """
         self.display_tree()
-        self.node = self.node.find_root()
+        self.current_node = self.tree.root
+        print(self.tree.get_trajectory())
         self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
@@ -95,18 +96,21 @@ class AgentOption():
                 return best_option
                         
     def update_agent(self, new_position, new_state, option, action):
-        self.node = self.node.add(new_state)
         if self.play:
             self.state = new_state
             self.position = new_position
             
         else:
-            self.last_action = Direction.cardinal().index(action)
+            self.last_action = Direction.cardinal().index(action) # TODO: action can be only an integer...
+            #compute rewards
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
+            #update q
             self.update_q_function_options(new_state, option, total_reward)
+            #update agent variables
             self.state = new_state
             self.position = new_position
+            self.current_node = self.tree.add(self.current_node, new_state) # TODO: Feed the RolloutIW class instead :)
             
     def update_q_function_options(self, new_state, option, reward):
         """
