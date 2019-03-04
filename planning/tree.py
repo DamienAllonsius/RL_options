@@ -164,19 +164,24 @@ class Tree:
     def get_leaves(self):
         leaves = []
         for node in self.root.depth_first():
-            if node.is_leaf():
+            if node.is_leaf() and (node.depth != 0):
                 leaves.append(node)
 
         return leaves
 
-    def get_trajectory(self):
-        """
-        TOFIX
-        """
+    def get_total_depth(self, leaves):
+        total_depth = 0
+        for node in leaves:
+            total_depth += node.depth
+
+        return total_depth
+
+    def get_good_trajectory(self):
         probability_leaves = []
         leaves = self.get_leaves()
+        total_depth = self.get_total_depth(leaves)
         for leaf in leaves:
-            probability_leaves.append((leaf.depth + 1) / (self.max_depth + 1))
+            probability_leaves.append(leaf.depth / total_depth)
 
         selected_leaf = leaves[sample_pmf(probability_leaves)]
         return self.extract_trajectory(selected_leaf)

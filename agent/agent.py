@@ -56,7 +56,8 @@ class AgentOption():
         """
         self.display_tree()
         self.current_node = self.tree.root
-        print(self.tree.get_trajectory())
+        if self.tree.max_depth > 0:
+            print(self.tree.get_good_trajectory())
         self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
