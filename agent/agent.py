@@ -106,7 +106,9 @@ class AgentOption():
         else:
     #            self.last_action = action
             if option.reward_for_agent > 0:
-                print("got a posive reward!")
+                import subprocess
+                subprocess.Popen(['notify-send', "got a posive reward !"])
+                print("\033[93m got a posive reward !")
                 
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.reward += option.reward_for_agent
