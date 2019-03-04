@@ -57,8 +57,10 @@ class Option(object):
             return end_option
 
         else:
-            self.reward_for_agent += reward 
-            total_reward = self.compute_total_reward(reward, end_option, new_state_blurred, lost_life = (self.lives > remaining_lives))
+            self.reward_for_agent += reward
+            lost_life = (self.lives > remaining_lives)
+            total_reward = self.compute_total_reward(reward, end_option, new_state_blurred, lost_life)
+            
             self.q.update_q_function_action_state(self.current_state, new_state, action)
             self.q.update_q_function_value(self.current_state, action, total_reward, new_state)
             self.lives = remaining_lives
