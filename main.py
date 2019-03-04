@@ -47,7 +47,7 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t > 500 or t<5
+    display_learning = t > 500 or t<150
     full_lives = {'ale.lives': 6}
     while not(done):
         if display_learning:

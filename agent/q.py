@@ -22,7 +22,7 @@ class QAbstract(object):
         message = ""
         for state_index in range(len(self.q_function)):
             for action in self.q_function[state_index]:
-                message += "state " +str(hash(self.state_list[state_index])) + " action " + str(action) + " value : " + str(self.q_function[state_index][action]) + "\n"
+                message += "state " + str(self.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q_function[state_index][action]) + "\n"
                 
         return message
 
@@ -86,6 +86,13 @@ class QDict(QAbstract):
     """
     this class is used when the number of actions is unknown : the elements of self.q_function are dictionaries.
     """
+    def __len__(self):
+        l = 0
+        for dict_opt in self.q_function:
+            l += len(dict_opt)
+
+        return l
+        
     def get_empty_structure(self):
         return {}
 

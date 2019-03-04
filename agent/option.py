@@ -78,7 +78,7 @@ class Option(object):
                 print("missed")
                 
         if lost_life:
-            self.reward_for_agent += PENALTY_LOST_LIFE
+#            self.reward_for_agent += PENALTY_LOST_LIFE
             total_reward += PENALTY_LOST_LIFE
             
         return total_reward
@@ -129,8 +129,8 @@ class OptionExplore(object):
         if self.lives == None:
             self.lives = remaining_lives
 
-        if self.lives > remaining_lives:
-            self.reward_for_agent += PENALTY_LOST_LIFE
+#        if self.lives > remaining_lives:
+#            self.reward_for_agent += PENALTY_LOST_LIFE
             
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
         self.lives = remaining_lives

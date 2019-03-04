@@ -32,7 +32,21 @@ class AgentOption():
     # def make_save_data(self, seed):
     #     #TODO : monitor ?
     #     self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
-        
+
+    def get_str_q(self, option):
+        message = ""
+        for state_index in range(len(self.q.q_function)):
+            for action in self.q.q_function[state_index]:
+                txt = "state " + str(self.q.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q.q_function[state_index][action]) + "\n"
+                if action == option:
+                    message += '\033[92m' + txt + '\033[0m'
+
+                else:
+                    message += txt
+                
+        return message
+
+
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
         self.explore_option.initial_state_blurred = self.state_blurred
@@ -72,13 +86,11 @@ class AgentOption():
                 best_reward, best_option = self.q.find_best_action(self.state_blurred)
                 if best_reward == 0:
                     best_option = self.q.get_random_action(self.state_blurred)
-                    best_option.reward_for_agent = 0
-                    return best_option
+                    
+                best_option.reward_for_agent = 0
+                print(self.get_str_q(best_option))
+                return best_option
                 
-                else:
-                    best_option.reward_for_agent = 0
-                    return best_option
-
     def update_agent(self, new_state, new_state_blurred, option, action):
         """
         In this order
@@ -95,35 +107,36 @@ class AgentOption():
     #            self.last_action = action
             if option.reward_for_agent > 0:
                 print("got a posive reward!")
+                
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.reward += option.reward_for_agent
             self.update_q_function_options(new_state, new_state_blurred, option, total_reward)
             self.state_blurred = new_state_blurred
             
     def update_q_function_options(self, new_state, new_state_blurred, option, reward):
-        if self.no_return_update(new_state): #update or not given if the reverse option already exists
-            action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
-            # if the state and the action already exist, this line will do nothing
-            self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)
-            print("number options " + str(len(self.q.q_function)))
-            if option != self.explore_option:
-                self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
+        #if self.no_return_update(new_state): #update or not given if the reverse option already exists
+        action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
+        # if the state and the action already exist, this line will do nothing
+        self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)
+        print("number options " + str(len(self.q)))
+        if option != self.explore_option:
+            self.q.update_q_function_value(self.state_blurred, option, reward, new_state_blurred)
 
-    def no_return_update(self, new_state):
-        """
-        (no return option)
-            does not add anything if 
-            for action in q[option.terminal_state]:
-            action.terminal_state = option.initial_state
-        """
-        return True
-        if self.q.is_state(new_state):
-            new_state_idx = self.q.state_list.index(new_state)
-            for action in self.q.q_function[new_state_idx]:
-                if action.terminal_state == self.state:
-                    return False
+    # def no_return_update(self, new_state):
+    #     """
+    #     (no return option)
+    #         does not add anything if 
+    #         for action in q[option.terminal_state]:
+    #         action.terminal_state = option.initial_state
+    #     """
+    #     return True
+    #     if self.q.is_state(new_state):
+    #         new_state_idx = self.q.state_list.index(new_state)
+    #         for action in self.q.q_function[new_state_idx]:
+    #             if action.terminal_state == self.state:
+    #                 return False
 
-        return True
+    #     return True
     
     # def record_reward(self, t):
     #     """
