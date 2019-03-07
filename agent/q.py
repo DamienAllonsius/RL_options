@@ -18,6 +18,20 @@ class QAbstract(object):
                 
         return message
 
+    def str_q(self, current_state, current_action):
+        red = '\033[91m'
+        white = '\033[0m'
+        message = ""
+        for state in self.q_dict:
+            for action in self.q_dict[state]:
+                if state == current_state and action == current_action:
+                    message += red
+                    
+                message += "state " +str(state) + " action " + str(action) + " value : " + str(self.q_dict[state][action]) + white + "\n"
+                
+        return message
+        
+
     def add_state(self, state):
         """
         If state does not exist, we create it.
@@ -104,6 +118,5 @@ class Q(QAbstract):
         else:
             max_value_action, _ = self.find_best_action(new_state)
             
-        self.q_dict[state][action] *= (1 - LEARNING_RATE)
-        self.q_dict[state][action] += LEARNING_RATE * (reward + max_value_action)
+        self.q_dict[state][action] = self.q_dict[state][action] * (1 - LEARNING_RATE) + LEARNING_RATE * (reward + max_value_action)
         

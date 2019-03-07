@@ -1,6 +1,8 @@
 import numpy as np
 from collections import defaultdict
 from planning.utils import *
+#from utils import *
+#import time
 
 class Node:
     def __init__(self, data, parent=None):
@@ -9,21 +11,11 @@ class Node:
         if self.parent:
             self.parent.children.append(self)
             self.depth = self.parent.depth + 1
+            
         else:
             self.depth = 0
+            
         self.children = []
-
-    def size(self):
-        return np.sum([c.size() for c in self.children]) + 1
-
-    def breadth_first(self):
-        current_nodes = [self]
-        while len(current_nodes) > 0:
-            children = []
-            for node in current_nodes:
-                yield node
-                children.extend(node.children) # extend = append
-            current_nodes = children
 
     def depth_first(self):
         yield self
@@ -37,12 +29,16 @@ class Node:
     def is_leaf(self):
         return len(self.children) == 0
 
+    def breadth_first(self):
+        current_nodes = [self]
+        while len(current_nodes) > 0:
+            children = []
+            for node in current_nodes:
+                yield node
+                children.extend(node.children)
+            current_nodes = children
+
     def add(self, data):
-        root = self.find_root()
-        for node in root.depth_first():
-            if node.data == data:
-                return node
-            
         return Node(data, parent=self)
 
     def make_root(self):
@@ -60,16 +56,35 @@ class Node:
         else:
             return self.parent.find_root()
 
-    def str_node(self, str_data_fn=lambda data: str(data)):
+    def str_node(self, current_node = None, next_node = None, str_data_fn=lambda node: str(node.data)):
+        red = '\033[91m'
+        green = '\033[92m'
+        yellow = '\033[93m'
+        white = '\033[0m'
         tab = '   '
         # '\033[91m' if for printing red text in the console !
-        s =  '\033[92m' + str_data_fn(self.data) + '\n'
+        if self.data == current_node:
+            s = red
+
+        else:
+            s = green
+
+        s += str_data_fn(self) + '\n'
         for node in self.depth_first():
-            
             d = node.depth - self.depth
             if d > 0:
-                s += "".join([tab] * d + ["|", str_data_fn(node.data), '\n'])
-        return s + '\033[0m'
+                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])                
+                if node.data == current_node:
+                    s += red
+                    
+                elif node.data == next_node:
+                    s += yellow
+
+                else:
+                    s += green
+                    
+                s += tex + green
+        return s + white
 
 # a = Node(1)
 # b = a.add(2)
@@ -93,37 +108,8 @@ class Tree:
     def __len__(self):
         return len(self.nodes)
 
-    def str_tree(self, str_data_fn=lambda data: str(data)):
-        return (self.root.str_node(str_data_fn))
-
-    def iter_depth_first(self, include_root=False, include_leaves=True):
-        iterator = self.root.depth_first()
-        try:
-            root = next(iterator)
-            if include_root:
-                yield root
-            while True:
-                node = next(iterator)
-                if include_leaves or not node.is_leaf():
-                    yield node
-        except StopIteration:
-            pass
-
-    def iter_breadth_first(self, include_root=False, include_leaves=True):
-        if include_root:
-            yield self.root
-        for d in range(1, self.max_depth + 1):
-            for node in self.depth[d]:
-                if include_leaves or not node.is_leaf():
-                    yield node
-
-    def iter_breadth_first_reverse(self, include_root=False, include_leaves=True):
-        for d in range(self.max_depth, 0, -1):
-            for node in self.depth[d]:
-                if include_leaves or not node.is_leaf():
-                    yield node
-        if include_root:
-            yield self.root
+    def str_tree(self, current_node = None, next_node = None, str_data_fn=lambda node: str(node.data) + ". depth : " + str(node.depth)):
+        return (self.root.str_node(current_node, next_node, str_data_fn) + " max depth = " + str(self.max_depth))
 
     def new_root(self, node, keep_subtree=True):
         node.make_root()
@@ -141,102 +127,98 @@ class Tree:
         self.nodes.append(node)
         if node.depth > self.max_depth: self.max_depth = node.depth
 
+    def add_tree(self, parent_node, node):
+        """
+        add the tree under the parent_node with the right depths
+        """
+        node.parent.children.remove(node)  # just to be consistent
+        node.parent = parent_node
+        old_depth = node.depth
+        parent_node.children.append(node)
+        for child in node.depth_first():
+            child.depth = child.depth - old_depth + (parent_node.depth + 1)
+
+        self.new_root(self.root, keep_subtree = True) # compute the new depths
+        return node
+
+
     def add(self, parent_node, data):
         """
-        if the node exits then return it. Else: add it in the regular way
+        Look at the node in the tree. 
+        If it does not exist, create it.
+        If it exists above, do nothing.
+        If it exists below, cut it and add it to the parent_node
         """
         for node in self.root.depth_first():
             if node.data == data:
-                return node
+                if node.parent == parent_node: # node exists: do nothing
+                    return node
+                
+                elif node.depth >= parent_node.depth + 1: # node is below
+                    return self.add_tree(parent_node, node)
 
-        else:
-            child = parent_node.add(data)
-            self._add(child)
-            return child
+                else: # node is above
+                    return node
 
-    def extract_trajectory(self, node):
-        trajectory = [node.data]
-        while not node.is_root():
-            node = node.parent
-            trajectory.append(node.data)
-        return list(reversed(trajectory))
+        child = parent_node.add(data) # node does not exist
+        self._add(child)
+        return child
 
-    def get_leaves(self):
+    def get_leaves(self, node):
         leaves = []
-        for node in self.root.depth_first():
-            if node.is_leaf() and (node.depth != 0):
-                leaves.append(node)
+        for child in node.depth_first():
+            if child.is_leaf() and (not child.is_root()):
+                leaves.append(child)
 
         return leaves
 
-    def get_total_depth(self, leaves):
+    def get_total_depth(self, node, leaves):
         total_depth = 0
-        for node in leaves:
-            total_depth += node.depth
+        for leaf in leaves:
+            total_depth += leaf.depth - node.depth
 
         return total_depth
 
-    def get_good_trajectory(self):
+    def get_next_data(self, node, leaf):
+        last_data = leaf.data
+        while leaf != node:
+            last_data = leaf.data
+            leaf = leaf.parent
+            
+        return last_data
+
+    def get_random_next_data(self, node):
+        if node.is_leaf():
+            return None
+        
         probability_leaves = []
-        leaves = self.get_leaves()
-        total_depth = self.get_total_depth(leaves)
+        leaves = self.get_leaves(node)
+        total_depth = self.get_total_depth(node, leaves)
         for leaf in leaves:
-            probability_leaves.append(leaf.depth / total_depth)
+            probability_leaves.append((leaf.depth - node.depth) / total_depth)
 
         selected_leaf = leaves[sample_pmf(probability_leaves)]
-        return self.extract_trajectory(selected_leaf)
-    
-class TreeActor:
-    """
-    Interacts with an environment while adding nodes to a tree.
-    """
+        return self.get_next_data(node, selected_leaf)
 
-    def __init__(self, env, observe_fn=None):
-        self.env = env
-        self.tree = None
-        self.observe_fn = observe_fn if observe_fn is not None else lambda x: x
+# tree = Tree(0)
+# tree.add(tree.root, 12)
+# b = tree.add(tree.root, 4)
+# c = tree.add(tree.root, 2)
+# tree.add(b, 1)
+# tot = tree.add(b, 8)
+# ac = tree.add(tot, 10)
+# z = tree.add(ac, 5)
+# tree.add(z, 3)
+# bubu = tree.add(ac, 124)
+# tree.add(c, 11)
+# tree.add(tree.root, 11)
+# tree.add(tree.root, 1)
+# tree.add(b, 124)
+# tree.add(tree.root, 8)
+# tree.add(b,10)
+# print(tree.str_tree())
 
-    def generate_successor(self, node, action):
-        if self.last_node is not node:
-            self.env.unwrapped.restore_state(node.data["s"])
-
-        # Perform step
-        next_obs, r, end_of_episode, info = self.env.step(action)
-        node_data = {"a": action, "r": r, "done": end_of_episode, "obs": next_obs}
-        node_data.update(info) # add extra info e.g. atari lives
-        child = self.tree.add(node, node_data)
-        self._observe(child)
-        return child
-
-    def step(self, a, cache_subtree):
-        next_node = self._get_next_node(self.tree, a)
-        root_data = self.tree.root.data
-
-        # "take a step" (actually remove other branches and make selected child root)
-        self.tree.new_root(next_node, keep_subtree=cache_subtree)
-        if self.last_node is not self.tree.root:
-            self.last_node = None  # just in case, we'll restore before expanding
-
-        return root_data, next_node.data
-
-    def reset(self):
-        obs = self.env.reset()
-        self.tree = Tree(self.env.action_space.n, {"obs": obs, "done": False})
-        self._observe(self.tree.root)
-        return self.tree
-
-    def _observe(self, node):
-        node.data["s"] = self.env.unwrapped.clone_state()
-        self.observe_fn(self.env, node)
-        self.last_node = node
-
-    def _get_next_node(self, tree, a):
-        assert not tree.root.is_leaf()
-
-        next_node = None
-        for child in tree.root.children:
-            if a == child.data["a"]:
-                next_node = child
-        assert next_node is not None, "Selected action not in tree. Something wrong with the lookahead policy?"
-
-        return next_node
+# node = tree.root
+# while not node.is_leaf():
+#     print(node.data)
+#     node = tree.get_random_next_data(node)

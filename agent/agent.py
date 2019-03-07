@@ -10,13 +10,12 @@ from variables import *
 from data.save import SaveData
 from planning.tree import Node, Tree
 
-class AgentOption(): 
+class AgentOption(object): 
 
     def __init__(self, position, state, play, grid_size_option):
         """
         TODO : replace state by a dictionary : self.state = {'zone' : zone, 'state_id' = 0}
         """
-        self.last_action = 0
         self.play = play
         self.grid_size_option = grid_size_option
         self.state = state
@@ -26,21 +25,21 @@ class AgentOption():
         self.current_node = Node(state)
         self.tree = Tree(state)
         if not(play):
-            self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option, 0) # special explore options
+            self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option) # special explore options
 #            self.explore_option = OptionExplore(self.state) # special explore options
 
     def make_save_data(self, seed):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
 
-    def display_tree(self):
-        print(self.tree.str_tree())
+    def display_tree(self, next_node_data):
+        print(self.tree.str_tree(self.current_node.data, next_node_data))
         
     def reset_explore_option(self):
         self.explore_option.reward = 0
         self.explore_option.initial_state = self.state
         if type(self.explore_option).__name__ == "OptionExploreQ":
             self.explore_option.position = self.explore_option.get_position(self.position)
-            self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
+            #self.explore_option.cardinal = self.explore_option.get_cardinal(self.last_action)
             # if this state is explored for the first time : make a new q function full of zeros
             # and set the exploration_terminated boolean for this state to False
             try:
@@ -52,12 +51,9 @@ class AgentOption():
         
     def reset(self, initial_agent_position, initial_agent_state):
         """
-        Same as __init__ but the q function is preserved 
+        Same as __init__ but the q function is preserved
         """
-        self.display_tree()
         self.current_node = self.tree.root
-        if self.tree.max_depth > 0:
-            print(self.tree.get_good_trajectory())
         self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
@@ -86,23 +82,33 @@ class AgentOption():
                 self.reset_explore_option()
                 return self.explore_option
 
-            # in this case find the best option
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
-                    best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
+                    next_terminal_state = self.tree.get_random_next_data(self.current_node)
+                    #self.display_tree(next_terminal_state)
+                    if next_terminal_state == None: # remember that the tree is only a representation of the shortest paths
+                        best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
+
+                    else:
+                        for opt in self.q.q_dict[self.state]:
+                            if opt.terminal_state == next_terminal_state:
+                                best_option = opt
 
                 best_option.position = best_option.get_position(self.position)
                 best_option.reward = 0
+                #print(best_option)
+                #print(best_option.q)
                 return best_option
                         
     def update_agent(self, new_position, new_state, option, action):
+        #print(self.q.str_q(self.state, option))
         if self.play:
             self.state = new_state
             self.position = new_position
             
         else:
-            self.last_action = Direction.cardinal().index(action) # TODO: action can be only an integer...
+            #self.last_action = Direction.cardinal().index(action) # TODO: action can be only an integer...
             #compute rewards
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
@@ -111,7 +117,7 @@ class AgentOption():
             #update agent variables
             self.state = new_state
             self.position = new_position
-            self.current_node = self.tree.add(self.current_node, new_state) # TODO: Feed the RolloutIW class instead :)
+            self.current_node = self.tree.add(self.current_node, new_state)
             
     def update_q_function_options(self, new_state, option, reward):
         """
@@ -124,7 +130,7 @@ class AgentOption():
             self.q.update_q_dict_action_space(self.state, new_state, action, reward)
             if option != self.explore_option:
                 self.q.update_q_dict_value(self.state, option, reward, new_state)
-                
+
     def no_return_update(self, new_state):
         """
         (no return option)
@@ -142,7 +148,11 @@ class AgentOption():
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION
         if self.state[1] < new_state_id: # we get an item from the world
-            total_reward += REWARD_KEY # extra reward for having the key !
+            if new_state_id == 1:
+                total_reward += REWARD_KEY # extra reward for having the key !
+                
+            elif new_state_id == 2:
+                total_reward += REWARD_DOOR
 
         return total_reward
         
