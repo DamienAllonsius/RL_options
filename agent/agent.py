@@ -5,7 +5,7 @@ from gridenvs.utils import Direction, Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
-from agent.q import Q
+from agent.q import QList
 from variables import *
 from data.save import SaveData
 from planning.tree import Node, Tree
@@ -19,7 +19,7 @@ class AgentOption(object):
         self.play = play
         self.grid_size_option = grid_size_option
         self.state = state
-        self.q = Q(self.state)
+        self.q = QList(state)
         self.position = position
         self.reward = 0
         self.current_node = Node(state)
@@ -88,10 +88,10 @@ class AgentOption(object):
                     next_terminal_state = self.tree.get_random_next_data(self.current_node)
                     self.display_tree(next_terminal_state)
                     if next_terminal_state == None: # remember that the tree is only a representation of the shortest paths
-                        best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
+                        best_option = self.q.get_random_action(self.state)
 
                     else:
-                        for opt in self.q.q_dict[self.state]:
+                        for opt in self.q.get_actions(self.state):
                             if opt.terminal_state == next_terminal_state:
                                 best_option = opt
 
@@ -114,38 +114,27 @@ class AgentOption(object):
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
             #update q
-            self.update_q_function_options(new_state, option, total_reward)
+            if self.q.no_return_update(new_state, self.state):
+                self.update_q_options(new_state, option, total_reward)
+                
             #update agent variables
             self.state = new_state
             self.position = new_position
             self.current_node = self.tree.add(self.current_node, new_state)
             
-    def update_q_function_options(self, new_state, option, reward):
+    def update_q_options(self, new_state, option, reward):
         """
         only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
         """
-        if self.no_return_update(new_state):
-            assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
-            action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
-            # if the state and the action already exist, this line will do nothing
-            self.q.update_q_dict_action_space(self.state, new_state, action, reward)
-            if option != self.explore_option:
-                self.q.update_q_dict_value(self.state, option, reward, new_state)
+        
+        assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
 
-    def no_return_update(self, new_state):
-        """
-        (no return option)
-            does not add anything if 
-            for action in q[option.terminal_state]:
-            action.terminal_state = option.initial_state
-        """
-        if self.q.is_state(new_state):
-            for action in self.q.q_dict[new_state]:
-                if action.terminal_state == self.state:
-                    return False
+        action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+        self.q.update_q_action_state(self.state, new_state, action)
 
-        return True
-    
+        if option != self.explore_option:
+            self.q.update_q_value(self.state, option, reward, new_state)
+
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION
         if self.state[1] < new_state_id: # we get an item from the world

@@ -3,7 +3,7 @@ This class is for making options
 For the moment we only implement the "exploring option"
 """
 from gridenvs.utils import Direction, Point
-from agent.q import Q
+from agent.q import QArray
 import time
 import numpy as np
 from variables import *
@@ -18,9 +18,9 @@ class Option(object):
         """
         self.play = play
         self.grid_size_option = grid_size_option
-        self.number_state = grid_size_option.x * grid_size_option.y
+        self.number_states = grid_size_option.x * grid_size_option.y
         self.number_actions = len(Direction.cardinal())
-        self.q = np.zeros((self.number_state, self.number_actions), dtype = np.float64)
+        self.q = QArray(self.number_states, self.number_actions)
         self.position = self.get_position(position)
         self.initial_state = initial_state
         self.terminal_state = terminal_state
@@ -60,39 +60,34 @@ class Option(object):
             return self.check_end_option(new_state)
 
         else:
-            total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
-            self.reward_for_agent += total_reward
-
-            if end_option:
-                max_value_action = 0
-                if new_state == self.terminal_state:
-                    total_reward += REWARD_END_OPTION
-                    
-                else:
-                    total_reward += PENALTY_END_OPTION
-
-            else:
-                max_value_action = np.max(self.q[encoded_new_position])
-                        
-            self.q[self.position, action] = (1 - LEARNING_RATE) * self.q[self.position, action]  + LEARNING_RATE * (total_reward + max_value_action)
-
-            # if self.initial_state == (Point(5,2), 1) and self.terminal_state == (Point(5,2), 2):
-            #     print(self.q)
-                
+            self.reward_for_agent += reward + PENALTY_OPTION_ACTION
+            total_reward = self.compute_total_reward(reward, new_state, end_option)
+            self.q.update_q_value(self.position, action, total_reward, encoded_new_position, end_option)
             self.position = encoded_new_position
             return end_option
-      
+
+    def compute_total_reward(self, reward, new_state, end_option):
+        total_reward = reward + PENALTY_OPTION_ACTION
+        if end_option:
+            if new_state == self.terminal_state:
+                total_reward += REWARD_END_OPTION
+                
+            else:
+                total_reward += PENALTY_END_OPTION
+
+        return total_reward
+        
     def act(self):
         if self.play:
-            best_action = np.argmax(self.q[self.position])
+            _, best_action = self.q.find_best_action(self.position)
 
         else:
             if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
-                best_action = np.random.randint(self.number_actions)
+                best_action = self.q.get_random_action(self.position)
             
             else:
-                best_action = np.argmax(self.q[self.position])
+                _, best_action = self.q.find_best_action(self.position)
             
         return best_action
 
@@ -124,8 +119,6 @@ class OptionExplore(object):
         return new_state != self.initial_state
 
     def update_option(self, reward, new_position, new_state, action):
-#        print("option state " + str(self.initial_state))
-#        print("option new_state " + str(new_state))
         self.reward_for_agent += PENALTY_OPTION_ACTION
         return self.check_end_option(new_state)
 
@@ -136,7 +129,6 @@ class OptionExploreQ(Option):
         self.grid_size_option = grid_size_option
         self.number_state = grid_size_option.x * grid_size_option.y
         self.number_actions = len(Direction.cardinal())
-        #self.permuted_cardinal = self.get_cardinal(last_action)
         self.position = self.get_position(position)
         self.initial_state = initial_state
         self.reward_for_agent = 0
@@ -148,25 +140,6 @@ class OptionExploreQ(Option):
 
     def __str__(self):
         return "explore option with Q function from " + str(self.initial_state)
-    
-    # def get_cardinal(self, permutation = 0):
-    #     """
-    #     We want to optimize the exploration by starting exploring in the same direction which we entered in the zone
-    #     when permutation is
-    #     _ 0 (= North) -> cardinal = [North, East, West, South]
-    #     _ 1 (= East) -> cardinal = [East, South, North, West]
-    #     _ 2 (= South) -> cardinal = [South, East, West, North]
-    #     _ 3 (= West) -> cardinal = [West, North, South, East]
-
-    #     this can be obtained by permuting [North, East, South, West] with a cycle
-    #     and then transposing the last two elements of the list.
-    #     """
-    #     permutated_cardinal = []
-    #     for k in range(self.number_actions):
-    #         permutated_cardinal.append((k + permutation) % self.number_actions)
-
-    #     permutated_cardinal[3], permutated_cardinal[2] = permutated_cardinal[2], permutated_cardinal[3]
-    #     return permutated_cardinal
     
     def update_option(self, reward, new_position, new_state, action):
         encoded_new_position = self.get_position(new_position)
@@ -192,6 +165,7 @@ class OptionExploreQ(Option):
                if not(terminated):
                    self.exploration_terminated[self.initial_state] = False
                    return
+               
             self.exploration_terminated[self.initial_state] = True
             print("exploration done -> state " + str(self.initial_state))
             

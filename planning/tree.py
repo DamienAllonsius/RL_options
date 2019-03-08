@@ -141,7 +141,6 @@ class Tree:
         self.new_root(self.root, keep_subtree = True) # compute the new depths
         return node
 
-
     def add(self, parent_node, data):
         """
         Look at the node in the tree. 
@@ -154,7 +153,7 @@ class Tree:
                 if node.parent == parent_node: # node exists: do nothing
                     return node
                 
-                elif node.depth >= parent_node.depth + 1: # node is below = ?
+                elif node.depth > parent_node.depth + 1: # node is below = ?
                     return self.add_tree(parent_node, node)
 
                 else: # node is above
