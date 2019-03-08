@@ -86,7 +86,7 @@ class AgentOption(object):
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
                     next_terminal_state = self.tree.get_random_next_data(self.current_node)
-                    #self.display_tree(next_terminal_state)
+                    self.display_tree(next_terminal_state)
                     if next_terminal_state == None: # remember that the tree is only a representation of the shortest paths
                         best_option = np.random.choice(list(self.q.q_dict[self.state].keys()))
 
@@ -97,8 +97,9 @@ class AgentOption(object):
 
                 best_option.position = best_option.get_position(self.position)
                 best_option.reward = 0
-                #print(best_option)
-                #print(best_option.q)
+                print("0. agent.q " + str(self.q))
+                print("1. best option : " +str(best_option))
+                print("2. best_option.q : " +str(best_option.q))
                 return best_option
                         
     def update_agent(self, new_position, new_state, option, action):

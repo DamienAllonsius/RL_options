@@ -47,7 +47,7 @@ def action_options(env, action, t, play):
     running_option = False
     #start the loop
     done = False
-    display_learning = False
+    display_learning = t>5100
     while not(done):
         if display_learning or play:
             env.render_scaled()

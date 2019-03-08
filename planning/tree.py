@@ -154,7 +154,7 @@ class Tree:
                 if node.parent == parent_node: # node exists: do nothing
                     return node
                 
-                elif node.depth >= parent_node.depth + 1: # node is below
+                elif node.depth >= parent_node.depth + 1: # node is below = ?
                     return self.add_tree(parent_node, node)
 
                 else: # node is above
@@ -168,7 +168,7 @@ class Tree:
         leaves = []
         for child in node.depth_first():
             if child.is_leaf() and (not child.is_root()):
-                leaves.append(child)
+                leaves.append(child) 
 
         return leaves
 
