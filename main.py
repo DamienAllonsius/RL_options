@@ -7,7 +7,10 @@ import time
 from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
-from variables import * 
+from variables import *
+
+
+
 
 def make_environment_agent(env_name, type_agent, number_gray_colors = NUMBER_GRAY_COLORS):
     """
@@ -63,7 +66,7 @@ def action_options(env, action, t, play):
                 
         # else, let the current option act
         action = option.act()
-        _, reward, done, info = env.step(action)
+        state, reward, done, info = env.step(action)
         new_position, new_state = info['position'], (info['zone'], info['state_id'])
         end_option = option.update_option(reward, new_position, new_state, action)
         # if the option ended then update the agent's data
@@ -79,6 +82,7 @@ def action_options(env, action, t, play):
                 # In this case the option ended normally and the process continues
                 running_option = False
                 agent.update_agent(new_position, new_state, option, action)
+
 
 def action(env, action, t, play):
     agent.reset(INITIAL_AGENT_POSITION)

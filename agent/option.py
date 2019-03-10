@@ -8,7 +8,6 @@ import time
 import numpy as np
 from variables import *
 import random
-
 """
 TODO : all the Option classes have now to inherit from OptionAbstract class.
 """
@@ -44,22 +43,24 @@ class OptionAbstract(object):
 
 class OptionDQN(OptionAbstract):
 
-    def __init__(self, initial_state, terminal_state, action_space, state_dimension, buffer, main_model_nn, target_model_nn, epsilon_step,
-                 update_target_freq, update_fn, gamma, batch_size, tf_sess, MIN_EPSILON, analyze_memory = False, play = False):
-        super().__init__(self,initial_state, terminal_state, play)
+    def __init__(self, position, initial_state, terminal_state, grid_size_option, action_space, state_dimension, buffer,
+                 main_model_nn, target_model_nn, epsilon_step, update_target_freq, update_fn, gamma, batch_size, MIN_EPSILON,
+                 tf_sess, play = False):
+        super().__init__(initial_state, terminal_state, play)
+
         self.action_space = action_space
         self.state_dimension = state_dimension
         self.buffer = buffer
         self.main_model_nn = main_model_nn
         self.target_model_nn = target_model_nn
+
         self.epsilon_step = epsilon_step
         self.update_target_freq = update_target_freq
         self.update_fn = update_fn
         self.gamma = gamma
-        self.tf_sess = tf_sess  # we need always the current session
         self.batch_size = batch_size
         self.MIN_EPSILON = MIN_EPSILON
-        self.analyze_memory = analyze_memory
+        self.tf_sess = tf_sess
 
     def act(self, s):
         if random.random() < self.epsilon:
@@ -128,13 +129,28 @@ class OptionDQN(OptionAbstract):
         _, loss = self.main_model_nn.train(self.tf_sess, x, y, imp_w)
         return loss
 
+    def encode_direction(self, direction):
+        """
+        this function encodes a direction Direction.N/S/E/W into a number, 1/2/3/4
+        """
+        return self.cardinal.index(direction)
+
     def update_option(self, reward, new_position, new_state, action):
 
+
+
+        encoded_new_position = self.get_position(new_position)
+        if self.play:
+            self.position = encoded_new_position
+            return self.check_end_option(new_state)
+
+        else:
             encoded_action = self.encode_direction(action)
             max_value_action = np.max(self.q[encoded_new_position])
             total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
             self.reward_for_agent += total_reward
+
             if end_option:
                 if new_state == self.terminal_state:
                     total_reward += REWARD_END_OPTION
@@ -142,10 +158,11 @@ class OptionDQN(OptionAbstract):
                 else:
                     total_reward += PENALTY_END_OPTION
 
-            self.q[self.position, encoded_action] *= (1 - LEARNING_RATE)
-            self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)
-            self.position = encoded_new_position
-            return end_option
+        self.observe((self.initial_state, encoded_action, total_reward, new_state))
+
+        self.replay()
+
+        return end_option
      
 class Option(object):
     """

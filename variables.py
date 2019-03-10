@@ -24,7 +24,6 @@ ENV_NAME = 'GE_MazeOptions-v1'
 NUMBER_SEEDS = 1
 
 
-""" DQN VARIABLES """
 
 
 
