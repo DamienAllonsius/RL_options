@@ -5,10 +5,9 @@ from gridenvs.utils import Direction, Point
 import numpy as np
 import time
 from agent.option import Option, OptionExplore, OptionExploreQ
-from agent.q import QList
+from agent.q import QTree
 from variables import *
 from data.save import SaveData
-from planning.tree import Node, Tree
 
 class AgentOption(object): 
 
@@ -19,11 +18,9 @@ class AgentOption(object):
         self.play = play
         self.grid_size_option = grid_size_option
         self.state = state
-        self.q = QList(state)
+        self.q = QTree(state)
         self.position = position
         self.reward = 0
-        self.current_node = Node(state)
-        self.tree = Tree(state)
         if not(play):
             self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option) # special explore options
 #            self.explore_option = OptionExplore(self.state) # special explore options
@@ -32,7 +29,7 @@ class AgentOption(object):
         self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
 
     def display_tree(self, next_node_data):
-        print(self.tree.str_tree(self.current_node.data, next_node_data))
+        print(self.q.str_QTree)
         
     def reset_explore_option(self):
         self.explore_option.reward = 0
@@ -53,7 +50,7 @@ class AgentOption(object):
         """
         Same as __init__ but the q function is preserved
         """
-        self.current_node = self.tree.root
+        self.q.reset()
         self.reward = 0
         self.position = initial_agent_position
         self.state = initial_agent_state
@@ -72,7 +69,7 @@ class AgentOption(object):
 
         else:
             # No option available : explore, and do not count the number of explorations
-            if not(self.q.is_actions(self.state)): 
+            if not(self.q.is_actions(self.state)):
                 self.reset_explore_option()
                 return self.explore_option
     
@@ -85,21 +82,16 @@ class AgentOption(object):
             else:
                 best_reward, best_option = self.q.find_best_action(self.state)
                 if best_reward == 0:
-                    next_terminal_state = self.tree.get_random_next_data(self.current_node)
-                    self.display_tree(next_terminal_state)
-                    if next_terminal_state == None: # remember that the tree is only a representation of the shortest paths
-                        best_option = self.q.get_random_action(self.state)
-
-                    else:
-                        for opt in self.q.get_actions(self.state):
-                            if opt.terminal_state == next_terminal_state:
-                                best_option = opt
+                    next_terminal_state = self.q.get_tree_advices()
+                    for opt in self.q.get_actions(self.state):
+                        if opt.terminal_state == next_terminal_state:
+                            best_option = opt
 
                 best_option.position = best_option.get_position(self.position)
                 best_option.reward = 0
-                print("0. agent.q " + str(self.q))
-                print("1. best option : " +str(best_option))
-                print("2. best_option.q : " +str(best_option.q))
+                #print("0. agent.q " + str(self.q))
+                #print("1. best option : " +str(best_option))
+                #print("2. best_option.q : " +str(best_option.q))
                 return best_option
                         
     def update_agent(self, new_position, new_state, option, action):
@@ -107,34 +99,28 @@ class AgentOption(object):
         if self.play:
             self.state = new_state
             self.position = new_position
-            
+
         else:
+            assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
             #self.last_action = Direction.cardinal().index(action) # TODO: action can be only an integer...
             #compute rewards
             total_reward = self.compute_total_reward(new_state[1])
             self.reward += option.reward_for_agent
             #update q
-            if self.q.no_return_update(new_state, self.state):
-                self.update_q_options(new_state, option, total_reward)
-                
+            if self.q.no_return_update(self.state, new_state):
+                action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+                self.q.update_q_action_state(self.state, new_state, action)            
+                if option != self.explore_option:
+                    self.q.update_q_value(self.state, option, total_reward, new_state)
+
+            else:
+                self.q.update_current_node(new_state)
+
             #update agent variables
             self.state = new_state
             self.position = new_position
-            self.current_node = self.tree.add(self.current_node, new_state)
             
-    def update_q_options(self, new_state, option, reward):
-        """
-        only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
-        """
-        
-        assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
-
-        action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
-        self.q.update_q_action_state(self.state, new_state, action)
-
-        if option != self.explore_option:
-            self.q.update_q_value(self.state, option, reward, new_state)
-
+            
     def compute_total_reward(self, new_state_id):
         total_reward = PENALTY_AGENT_ACTION
         if self.state[1] < new_state_id: # we get an item from the world

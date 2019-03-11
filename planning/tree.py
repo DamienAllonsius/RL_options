@@ -6,7 +6,7 @@ import time
 
 class Node:
     def __init__(self, data, parent=None):
-        self.values = [0]
+        self.values = []
         self.data = data #a.k.a state
         self.actions = []
         self.parent = parent
@@ -19,6 +19,18 @@ class Node:
             
         self.children = []
 
+    def __str__(self):
+        tab = "    "
+        s = str(self.data) + " at depth " + str(self.depth) + "\n"
+        if self.parent != None:
+            s += "parent: " + str(self.parent.data) + "\n"
+            
+        s += "node and children:" + "\n"
+        s += self.str_node(self)
+        for k in range(len(self.actions)):
+            s += "action: " +str(self.actions[k]) + " value: " + str(self.values[k]) + "\n"
+        return s
+        
     def depth_first(self):
         yield self
         for child in self.children:
@@ -75,7 +87,7 @@ class Node:
         for node in self.depth_first():
             d = node.depth - self.depth
             if d > 0:
-                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])                
+                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])
                 if node.data == current_node:
                     s += red
                     

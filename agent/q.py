@@ -18,8 +18,14 @@ class QAbstract(object):
         return message
 
     def __len__(self):
-       return len(self.get_states)
+        return len(self.get_states)
 
+    def reset(self):
+        """
+        returns the state visited so far.
+        """
+        raise Exception("Not Implemented")
+    
     def get_states(self):
         """
         returns the state visited so far.
@@ -53,6 +59,13 @@ class QAbstract(object):
         
         else:
             return self.get_actions(state) != []
+
+    def is_action_to_state(self, state, action):
+        if not(self.is_state(state)):
+            raise Exception("cannot test if action exist to state since state does not exist")
+        
+        else:
+            return (action in self.get_actions(state))
    
     def add_state(self, state):
         raise Exception("Not Implemented")
@@ -81,7 +94,7 @@ class QAbstract(object):
             else:
                 best_value = 0
 
-            self.learning_update(self, state, action, reward, best_value)
+            self.learning_update(state, action, reward, best_value)
 
         else:
             raise Exception('unhable to update q since state does not exist')
@@ -126,6 +139,9 @@ class QArray(QAbstract):
     def __str__(self):
         return str(self.q_function)
 
+    def reset(self):
+        pass
+    
     def find_best_action(self, state):
         return np.max(self.q_function[state]), np.argmax(self.q_function[state])
 
@@ -162,6 +178,9 @@ class QList(QAbstract):
         self.state_list = [state]
         self.actions = [[]]
         self.values = [[]]
+
+    def reset(self):
+        pass
 
     def get_states(self):
         """
@@ -227,17 +246,23 @@ class QTree(QAbstract):
     """
     def __init__(self, state):
         self.tree = Tree(state)
+        self.reset()
+
+    def reset(self):
         self.current_node = self.tree.root
+
+    def str_QTree(self, next_node_data):
+        return self.tree.str_tree(self.current_node.data, next_node_data)
         
     def get_states(self):
         """
         returns the state visited so far.
         """
-        return self.tree.nodes
+        return [node.data for node in self.tree.nodes]
 
     def get_node_from_state(self, state):
         for node in self.tree.root.depth_first():
-            if node.state == state:
+            if node.data == state:
                 return node
 
         raise Exception("state does not exist in the tree")
@@ -260,12 +285,16 @@ class QTree(QAbstract):
         node.values[idx] = value
         
     def add_state(self, state):
-        self.current_node = self.tree.add(self.current_node, node)
-        self.current_node.state = state
-        n = self.get_node_from_state(state) # just a test, exception should not be raised
+        self.current_node = self.tree.add(self.current_node, state)
+        self.current_node.data = state
         
     def add_action_to_state(self, state, action):
-        self.current_node.actions.append(action)
+        if not self.is_action_to_state(state, action):
+            self.current_node.actions.append(action)
+            self.current_node.values.append(0)
+
+    def get_tree_advices(self):
+        return self.tree.get_random_next_data(self.current_node)
             
     def find_best_action(self, state):
         if not(self.is_state(state)):
@@ -275,8 +304,12 @@ class QTree(QAbstract):
             raise Exception('cannot find best action since there is no action in state ' + str(state))
 
         else: # return best_value, best_action
-            m = max(self.current_node.values)
-            return m, self.actions.index(m)
+            node = self.get_node_from_state(state)
+            m = max(node.values)
+            return m, node.actions[node.values.index(m)]
 
     def get_random_action(self, state):
         return np.random.choice(self.current_node.actions)
+
+    def update_current_node(self, new_state):
+        self.current_node = self.get_node_from_state(new_state)
