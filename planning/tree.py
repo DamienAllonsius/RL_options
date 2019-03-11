@@ -2,11 +2,13 @@ import numpy as np
 from collections import defaultdict
 from planning.utils import *
 #from utils import *
-#import time
+import time
 
 class Node:
     def __init__(self, data, parent=None):
-        self.data = data
+        self.values = [0]
+        self.data = data #a.k.a state
+        self.actions = []
         self.parent = parent
         if self.parent:
             self.parent.children.append(self)
@@ -164,6 +166,12 @@ class Tree:
         return child
 
     def get_leaves(self, node):
+        """
+        new idea : track the list of leaves at all time.
+        if root : return all the leaves.
+        else: get all the parents for each leaf and compare them to node.
+        If node is found, add this leaf to leaves.
+        """
         leaves = []
         for child in node.depth_first():
             if child.is_leaf() and (not child.is_root()):
