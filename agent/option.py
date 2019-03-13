@@ -3,7 +3,7 @@ This class is for making options
 For the moment we only implement the "exploring option"
 """
 from gridenvs.utils import Point
-from agent.q import QDict, QArray
+from agent.q import QArray
 import time
 import numpy as np
 from variables import *
@@ -23,7 +23,7 @@ class Option(object):
         self.initial_state_blurred = initial_state_blurred # blurred image
         self.current_state = current_state # high resolution image
         self.terminal_state_blurred = terminal_state_blurred # blurred image
-        self.reward_for_agent = 0
+        self.reward_for_agent = 0 # the positive rewards received by the environment
         self.lives = None
 
     def __repr__(self):
@@ -53,6 +53,7 @@ class Option(object):
             self.lives = remaining_lives
             
         end_option = self.check_end_option(new_state_blurred)
+
         if self.play:
             return end_option
 
@@ -89,10 +90,11 @@ class Option(object):
 
         else:
             if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
-                best_action = np.random.randint(self.number_actions)
+                best_action = self.q.get_random_action(self.position)
             
             else:
                 _, best_action = self.q.find_best_action(self.current_state)
+
             
         return best_action
 
@@ -135,3 +137,55 @@ class OptionExplore(object):
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
         self.lives = remaining_lives
         return self.check_end_option(new_state_blurred)
+
+# class OptionExploreQ(Option):
+
+#     def __init__(self, position, initial_state, grid_size_option):
+#         self.grid_size_option = grid_size_option
+#         self.number_state = grid_size_option.x * grid_size_option.y
+#         self.number_actions = len(Direction.cardinal())
+#         self.position = self.get_position(position)
+#         self.initial_state = initial_state
+#         self.reward_for_agent = 0
+#         self.q = {}
+#         self.exploration_terminated = {}
+
+#     def __eq__(self, other):
+#         return type(other).__name__ == self.__class__.__name__
+
+#     def __str__(self):
+#         return "explore option with Q function from " + str(self.initial_state)
+    
+#     def update_option(self, reward, new_position, new_state, action):
+#         encoded_new_position = self.get_position(new_position)
+#         max_value_action = np.max(self.q[self.initial_state][self.position])
+#         total_reward = PENALTY_OPTION_ACTION 
+#         end_option = self.check_end_option(new_state)
+#         self.reward_for_agent += PENALTY_OPTION_ACTION
+#         self.q[self.initial_state][self.position, action] += total_reward
+#         self.set_exploration_terminated()
+#         self.position = encoded_new_position
+#         return end_option
+
+#     def set_exploration_terminated(self):
+#         """
+#         the exploration is terminated if for ALL states, the actions are : 
+#         - either [0, 0, 0, 0] (this would correspond to a wall for example)
+#         - either [-1, -3, -4, -11] (all the actions have been tried)
+#         """
+#         if not(self.exploration_terminated[self.initial_state]):
+#             # change only if it is false. Otherwise leave it at True
+#             for actions in self.q[self.initial_state]:
+#                terminated = (actions == [0, 0, 0, 0]).all() or (0 not in actions)
+#                if not(terminated):
+#                    self.exploration_terminated[self.initial_state] = False
+#                    return
+               
+#             self.exploration_terminated[self.initial_state] = True
+#             print("exploration done -> state " + str(self.initial_state))
+            
+#     def act(self):
+#         current_q_function = self.q[self.initial_state]
+#         max_value_action = np.argmax(current_q_function[self.position])
+#         return max_value_action
+

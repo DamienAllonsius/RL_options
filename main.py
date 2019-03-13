@@ -10,7 +10,9 @@ from gridenvs.utils import Point
 from variables import *
 from wrappers.obs import ObservationZoneWrapper # TODO : make a proper file dedicated to wrappers
 
+
 def make_environment_agent(env_name, type_agent):
+
     """
     type_agent parameter should be "AgentOption" or "QAgent"
     """
@@ -20,8 +22,8 @@ def make_environment_agent(env_name, type_agent):
         obs = env.reset() #first output : observation, second output : blurred observation
         type_exploration = "OptionExplore"
         number_actions = env.action_space.n
-        agent = AgentOption(state_blurred = obs[1], number_actions = number_actions, type_exploration = type_exploration, play = False)
-        return env, agent, obs[1]
+        agent = AgentOption(current_state = obs, number_actions = number_actions, type_exploration = type_exploration, play = False)
+        return env, agent, obs
         
     elif type_agent == "QAgent":
         raise Exception("Not Implemented yet")
@@ -35,6 +37,7 @@ def make_environment_agent(env_name, type_agent):
     else:
         raise Exception("agent name does not exist")
     
+
 def act_options(env, t, initial_setting):
     """
     0/ The agent chooses an option
@@ -47,6 +50,7 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
+
     display_learning = t > 500 or t<150
     full_lives = {'ale.lives': 6}
     while not(done):
@@ -71,14 +75,17 @@ def act_options(env, t, initial_setting):
 
         done = (info != full_lives)
 
+
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
     done = False
     display_learning = True
     #start the loop
     while not(done):
-        if display_learning:
-            #time.sleep(.2)
+        if display_learning or play:
+            if play:
+                time.sleep(.2)
+                
             env.render_scaled()
                 
         action = agent.act(t)
