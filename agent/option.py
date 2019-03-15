@@ -52,7 +52,7 @@ class Option(object):
         self.current_state = current_state
         self.q.add_state(current_state)
     
-    def update_option(self, reward, new_state, action, remaining_lives):
+    def update_option(self, reward, new_state, action, remaining_lives):            
         if self.lives == None:
             self.lives = remaining_lives
             
@@ -124,7 +124,7 @@ class OptionExplore(object):
 
     def act(self):
         # here we do a stupid thing: go random, until it finds a new zone
-        return (np.random.randint(6) + 2)
+        return (np.random.randint(self.number_actions))
     
     def check_end_option(self, new_state_blurred):
         """

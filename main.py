@@ -47,9 +47,9 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t>1
+    display_learning = t>2000
     full_lives = {'ale.lives': 6}
-    
+        
     while not(done):
         if display_learning:
             env.render(blurred_render = True, gray_scale = True)
@@ -62,6 +62,7 @@ def act_options(env, t, initial_setting):
         action = option.act()
         obs, reward, done, info = env.step(action)
         end_option = option.update_option(reward, obs, action, info['ale.lives'])
+        
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
