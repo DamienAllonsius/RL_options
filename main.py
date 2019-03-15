@@ -1,8 +1,8 @@
+import numpy as np
 import sys, time
 sys.path.append('gridenvs')
 import gridenvs.examples  # load example gridworld environments
 import gym
-import numpy as np
 import time
 from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
@@ -10,13 +10,11 @@ from gridenvs.utils import Point
 from variables import *
 from wrappers.obs import ObservationZoneWrapper # TODO : make a proper file dedicated to wrappers
 
-
-def make_environment_agent(env_name, type_agent):
-
+def make_environment_agent(env_name, type_agent, seed):
     """
     type_agent parameter should be "AgentOption" or "QAgent"
     """
-    
+    np.random.seed(seed)
     if type_agent == "AgentOption":
         env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED, gray_scale = GRAY_SCALE, number_gray_colors = NUMBER_GRAY_COLORS)
         obs = env.reset() #first output : observation, second output : blurred observation
@@ -37,7 +35,6 @@ def make_environment_agent(env_name, type_agent):
     else:
         raise Exception("agent name does not exist")
     
-
 def act_options(env, t, initial_setting):
     """
     0/ The agent chooses an option
@@ -50,12 +47,12 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-
-    display_learning = t > 500 or t<150
+    display_learning = t>1
     full_lives = {'ale.lives': 6}
+    
     while not(done):
         if display_learning:
-            env.render(blurred_render = t<5, gray_scale = t<5)
+            env.render(blurred_render = True, gray_scale = True)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
@@ -64,17 +61,16 @@ def act_options(env, t, initial_setting):
         # else, let the current option act
         action = option.act()
         obs, reward, done, info = env.step(action)
-        end_option = option.update_option(reward, obs[0], obs[1], action, info['ale.lives'])
+        end_option = option.update_option(reward, obs, action, info['ale.lives'])
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
             #agent.update_agent(new_position, new_agent_state, option, action)
             # In this case the option ended normally and the process continues
             running_option = False
-            agent.update_agent(obs[0], obs[1], option, action)
+            agent.update_agent(obs, option, action)
 
         done = (info != full_lives)
-
 
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
@@ -94,11 +90,9 @@ def act(env, t, initial_setting):
         new_state_id = info['state_id']
         agent.update(reward, new_position, action, new_state_id)
     
-def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARNING, seed = 0):
-    
-    np.random.seed(seed)
+def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARNING):
     agent.play = play
-#    agent.make_save_data(seed)
+    #agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -128,7 +122,7 @@ env_name = ENV_NAME if len(sys.argv)<2 else sys.argv[1] #default environment or 
 type_agent = "AgentOption"
 
 for seed in range(NUMBER_SEEDS):
-    env, agent, initial_setting = make_environment_agent(env_name, type_agent = type_agent)
-    agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, seed = seed, initial_setting = initial_setting)
+    env, agent, initial_setting = make_environment_agent(env_name, type_agent, seed)
+    agent_learned = learn_or_play(env, agent, iteration = ITERATION_LEARNING, play = False, initial_setting = initial_setting)
     
 #agent_learned.save_data.plot_data()

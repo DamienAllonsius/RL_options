@@ -3,7 +3,6 @@ from variables import *
 from planning.tree import Tree
 import numpy as np
 import time
-
 class QAbstract(object):
     """ 
     Contains the q value function which maps a state and an action to a value
@@ -16,9 +15,6 @@ class QAbstract(object):
                 message += "state " + str(state) + " action " + str(action) + " value : " + str(self.get_value(state, action)) + "\n"
                 
         return message
-
-    def __len__(self):
-        return len(self.get_states)
 
     def reset(self):
         """
@@ -126,49 +122,9 @@ class QAbstract(object):
 
         return True
 
-class QArray(QAbstract):
-    """
-    this class is used when the number of actions known.
-    states are integers representing the positions of the agent
-    """
-    def __init__(self, number_states, number_actions):
-        self.q_function = np.zeros((number_states, number_actions), dtype = np.float64)
-        self.number_actions = number_actions
-        self.number_states = number_states
-
-    def __str__(self):
-        return str(self.q_function)
-
-    def reset(self):
-        pass
-    
-    def find_best_action(self, state):
-        return np.max(self.q_function[state]), np.argmax(self.q_function[state])
-
-    def get_states(self):
-        return range(self.number_states)
-
-    def get_actions(self, state):
-        return range(self.number_actions)
-  
-    def get_value(self, state, action):
-        return self.q_function[state, action]
-
-    def get_random_action(self, state):
-        return np.random.randint(self.number_actions)
-
-    def update_q_value(self, state, action, reward, new_state, end_option):
-        if end_option:
-            best_value = 0
-
-        else:
-            best_value = np.max(self.q_function[new_state])
-
-        self.q_function[state, action] = (1 - LEARNING_RATE) * self.q_function[state, action]  + LEARNING_RATE * (reward + best_value)
-        
 class QList(QAbstract):
     """
-    This class is used when the number of actions is unknown.
+    This class is used when the number of states and actions are unknown.
     state_list = [state_1, state_2, ...] # a list of all states
     actions = [[action_1_state_1, action_2_state_1], [action_1_state_2], ...]
     values = [[value_action_1_state_1, value_action_2_state_1], [value_action_1_state_2], ...]
@@ -248,6 +204,9 @@ class QTree(QAbstract):
         self.tree = Tree(state)
         self.reset()
 
+    def __len__(self):
+        return len(self.get_states())
+
     def reset(self):
         self.current_node = self.tree.root
 
@@ -314,6 +273,138 @@ class QTree(QAbstract):
     def update_current_node(self, new_state):
         self.current_node = self.get_node_from_state(new_state)
 
+
+class QArray(QAbstract):
+    """
+    This class is used when the number of states is unknown but the number of actions is known
+    state_list = [state_1, state_2, ...] # a list of all states
+    Unlike QTree, this class does not allow an efficient exploration.
+    """
+    def __init__(self, state, number_actions):
+        self.state_list = [state]
+        self.actions = [np.zeros(number_actions, dtype = np.float64)]
+        self.number_actions = number_actions
+
+    def __len__(self):
+        l = 0
+        for idx in range(len(self.state_list)):
+            l += len(self.actions[idx])
+    
+        return l
+
+    def __str__(self):
+        message = ""
+        for idx in range(len(state_list)):
+            message += str(self.state_list[idx]) + " actions-values : " + str(self.actions[idx])
+
+        return message
+     
+    def reset(self):
+        pass
+
+    def get_states(self):
+        """
+        returns the state visited so far.
+        """
+        return self.state_list
+    
+    def get_value(self, state, action):
+        """
+        action should be an integer between 0 and number_actions - 1
+        """
+        state_idx = self.state_list.index(state)
+        return self.actions[state_idx][action]
+    
+    def set_value(self, state, action, value):
+        """
+        action should be an integer between 0 and number_actions - 1
+        """
+        state_idx = self.state_list.index(state)
+        self.values[state_idx][action] = value
+    
+    def add_state(self, state):
+        self.state_list.append(state)
+        self.actions.append(np.zeros(self.number_actions, dtype = np.float64))
+        
+    def add_action_to_state(self, state, action):
+        if not(self.is_state(state)):
+            raise Exception("action cannot be added since state does not exist")
+        
+    def find_best_action(self, state):
+        #start = time. time()
+        if not(self.is_state(state)):
+            raise Exception('cannot find best action since there is no state : ' + str(state))
+        
+        else: # return best_value, best_action
+            state_idx = self.state_list.index(state)
+            #end = time. time()
+            #print("time " + str(end - start))
+            return np.max(self.actions[state_idx]), np.argmax(self.actions[state_idx])
+
+    def get_random_action(self, state):
+        return np.random.randint(self.number_actions)
+
+    def is_actions(self, state):
+        if not(self.is_state(state)):
+            raise Exception("cannot test if actions exist since state does not exist")
+
+        else:
+            return True
+    
+    def is_action_to_state(self, state, action):
+        if not(self.is_state(state)):
+            raise Exception("cannot test if actions exist since state does not exist")
+
+        else:
+            return True
+
+    def update_q_value(self, state, action, reward, new_state, end_option):
+        new_state_idx = self.state_list.index(new_state)
+        state_idx = self.state_list.index(state)
+        if end_option:
+            best_value = 0
+            
+        else:
+            best_value = np.max(self.actions[new_state_idx])
+
+        self.actions[state_idx][action] = (1 - LEARNING_RATE) * self.actions[state_idx][action]  + LEARNING_RATE * (reward + best_value)
+
+# class QArray(QAbstract):
+#     """
+#     TODO : is action ?!
+#     this class is used when the number of actions is known : the elements of self.q_function are fixed size arrays.
+#     However the number of states is unknown
+#     """
+#     def __init__(self, state, number_actions):
+#         self.number_actions = number_actions
+#         super().__init__(state)
+        
+#     def get_empty_structure(self):
+#         return np.zeros(self.number_actions)
+
+#     def add_action_to_state(self, state, action):
+#         pass
+        
+#     def find_best_action(self, state):
+#         if not(self.is_state(state)):
+#             raise Exception('cannot find best action since there is no state : ' + str(state))
+        
+#         else: # return best_value, best_action
+#             idx = self.state_list.index(state)
+#             return max(self.q_function[idx]), np.argmax(self.q_function[idx])
+    
+#     def is_actions(self, state):
+#         return True
+    
+#     def is_action_to_state(self, state, action):
+#         return True
+
+#     def get_random_action(self, state):
+#         """
+#         TODO
+#         """
+#         pass
+
 # class QDict(QAbstract):
 #     """
 #     this class is used when the number of actions is unknown : the elements of self.q_function are dictionaries.
@@ -355,37 +446,45 @@ class QTree(QAbstract):
 #     def is_empty(self, struct):
 #          return struct != self.get_empty_structure()
 
+
 # class QArray(QAbstract):
 #     """
-#     TODO : is action ?!
-#     this class is used when the number of actions known : the elements of self.q_function are fixed size arrays.
+#     this class is used when the number of actions is known but the number of states is unknown.
+#     states are integers representing the positions of the agent
+#     from IW initial set up.
 #     """
 #     def __init__(self, state, number_actions):
+#         self.state_list = [state]
+#         self.q_function = np.zeros((number_states, number_actions), dtype = np.float64)
 #         self.number_actions = number_actions
-#         super().__init__(state)
-        
-#     def get_empty_structure(self):
-#         return np.zeros(self.number_actions)
+#         self.number_states = number_states
 
-#     def add_action_to_state(self, state, action):
+#     def __str__(self):
+#         return str(self.q_function)
+
+#     def reset(self):
 #         pass
-        
+    
 #     def find_best_action(self, state):
-#         if not(self.is_state(state)):
-#             raise Exception('cannot find best action since there is no state : ' + str(state))
-        
-#         else: # return best_value, best_action
-#             idx = self.state_list.index(state)
-#             return max(self.q_function[idx]), np.argmax(self.q_function[idx])
-    
-#     def is_actions(self, state):
-#         return True
-    
-#     def is_action_to_state(self, state, action):
-#         return True
+#         return np.max(self.q_function[state]), np.argmax(self.q_function[state])
+
+#     def get_states(self):
+#         return range(self.number_states)
+
+#     def get_actions(self, state):
+#         return range(self.number_actions)
+  
+#     def get_value(self, state, action):
+#         return self.q_function[state, action]
 
 #     def get_random_action(self, state):
-#         """
-#         TODO
-#         """
-#         pass
+#         return np.random.randint(self.number_actions)
+
+#     def update_q_value(self, state, action, reward, new_state, end_option):
+#         if end_option:
+#             best_value = 0
+
+#         else:
+#             best_value = np.max(self.q_function[new_state])
+
+#         self.q_function[state, action] = (1 - LEARNING_RATE) * self.q_function[state, action]  + LEARNING_RATE * (reward + best_value)

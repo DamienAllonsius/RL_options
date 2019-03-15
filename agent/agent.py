@@ -5,7 +5,7 @@ from gridenvs.utils import Point
 import numpy as np
 import time
 
-from agent.option import Option, OptionExplore, OptionExploreQ
+from agent.option import Option, OptionExplore#, OptionExploreQ
 from agent.q import QTree
 from variables import *
 from data.save import SaveData
@@ -13,7 +13,7 @@ from data.save import SaveData
 class AgentOption(object): 
 
     def __init__(self, current_state, number_actions, type_exploration, play):
-        self.number_actions = number_actions
+        self.number_actions = 8#number_actions
 #        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
         self.current_state = current_state
@@ -40,27 +40,27 @@ class AgentOption(object):
         """
         for QTree
         """
-        print(self.q.str_QTree(self.current_state["blurred_state"], next_node_data))
+        print(self.q.str_QTree(next_node_data))
         
-    def display_QDict(self, option):
-        """
-        for QDict
-        """
-        message = ""
-        for state_index in range(len(self.q.q_function)):
-            for action in self.q.q_function[state_index]:
-                txt = "state " + str(self.q.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q.q_function[state_index][action]) + "\n"
-                if action == option:
-                    message += '\033[92m' + txt + '\033[0m'
+    # def display_QDict(self, option):
+    #     """
+    #     for QDict
+    #     """
+    #     message = ""
+    #     for state_index in range(len(self.q.q_function)):
+    #         for action in self.q.q_function[state_index]:
+    #             txt = "state " + str(self.q.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q.q_function[state_index][action]) + "\n"
+    #             if action == option:
+    #                 message += '\033[92m' + txt + '\033[0m'
 
-                else:
-                    message += txt
+    #             else:
+    #                 message += txt
                 
-        return message
+    #     return message
 
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
-        self.explore_option.initial_blurred_state = self.current_state["blurred_state"]
+        self.explore_option.initial_state = self.current_state["blurred_state"]
         """
         TODO
         """
@@ -122,7 +122,7 @@ class AgentOption(object):
                             best_option = opt
                     
                 best_option.reward_for_agent = 0
-                best_option.current_state = self.current_state["state"]  # update the option's current state ! 
+                best_option.set_current_state(self.current_state["state"])  # update the option's current state ! 
                 #print("0. agent.q " + str(self.q))
                 #print("1. best option : " +str(best_option))
                 #print("2. best_option.q : " +str(best_option.q))
@@ -137,7 +137,7 @@ class AgentOption(object):
         _update the q function value
         _update the state
         """
-        self.display_Qtree(new_state["blurred_state"])
+        #self.display_Qtree(new_state["blurred_state"])
         if self.play:
             self.current_state = new_state
             
@@ -155,7 +155,9 @@ class AgentOption(object):
             
     def update_q_function_options(self, new_state, option, reward):
         if self.q.no_return_update(self.current_state["blurred_state"], new_state["blurred_state"]):
-            action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred"], self.play)
+            
+            action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred_state"], self.play)
+            
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_action_state(self.current_state["blurred_state"], new_state["blurred_state"], action)
             print("number options " + str(len(self.q)))
@@ -163,7 +165,7 @@ class AgentOption(object):
                 self.q.update_q_value(self.current_state["blurred_state"], option, reward, new_state["blurred_state"])
 
         else:
-            self.q.udpade_current_node(new_state["blurred_state"])
+            self.q.update_current_node(new_state["blurred_state"])
     
     # def record_reward(self, t):
     #     """
