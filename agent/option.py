@@ -52,12 +52,12 @@ class Option(object):
         self.current_state = current_state
         self.q.add_state(current_state)
     
-    def update_option(self, reward, new_state, action, remaining_lives):            
+    def update_option(self, reward, new_state, action, remaining_lives):
         if self.lives == None:
             self.lives = remaining_lives
             
         end_option = self.check_end_option(new_state["blurred_state"])
-
+        
         if self.play:
             return end_option
 
@@ -77,11 +77,11 @@ class Option(object):
         if end_option:
             if new_state_blurred == self.terminal_state:
                 total_reward += REWARD_END_OPTION
-                print("option terminated correctly")
+#                print("option terminated correctly")
                 
             else:
                 total_reward += PENALTY_END_OPTION
-                print("missed")
+#                print("missed")
                 
         if lost_life:
 #            self.reward_for_agent += PENALTY_LOST_LIFE
@@ -124,7 +124,7 @@ class OptionExplore(object):
 
     def act(self):
         # here we do a stupid thing: go random, until it finds a new zone
-        return (np.random.randint(self.number_actions))
+        return np.random.randint(self.number_actions)
     
     def check_end_option(self, new_state_blurred):
         """
@@ -136,9 +136,9 @@ class OptionExplore(object):
         if self.lives == None:
             self.lives = remaining_lives
 
-#        if self.lives > remaining_lives:
-#            self.reward_for_agent += PENALTY_LOST_LIFE
-            
+        #        if self.lives > remaining_lives:
+        #            self.reward_for_agent += PENALTY_LOST_LIFE
+           
         self.reward_for_agent += reward # the option shows a sample of the possible reward of the state to the agent
         self.lives = remaining_lives
         return self.check_end_option(new_state["blurred_state"])

@@ -13,7 +13,7 @@ from data.save import SaveData
 class AgentOption(object): 
 
     def __init__(self, current_state, number_actions, type_exploration, play):
-        self.number_actions = 8#number_actions
+        self.number_actions = number_actions
 #        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
         self.current_state = current_state
@@ -137,30 +137,27 @@ class AgentOption(object):
         _update the q function value
         _update the state
         """
-        #self.display_Qtree(new_state["blurred_state"])
+        self.display_Qtree(new_state["blurred_state"])
         if self.play:
             self.current_state = new_state
             
         else:
-#            self.last_action = action
-            if option.reward_for_agent > 0: # the worker found a positive reward
-                import subprocess
-                subprocess.Popen(['notify-send', "got a posive reward !"])
-                print("\033[93m got a posive reward !")
-                
+#            self.last_action = action    
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent 
             self.update_q_function_options(new_state, option, total_reward)
             self.current_state = new_state
             self.personal_reward += option.reward_for_agent
             
+            return option.reward_for_agent > 0
+            
     def update_q_function_options(self, new_state, option, reward):
         if self.q.no_return_update(self.current_state["blurred_state"], new_state["blurred_state"]):
-            
+
             action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred_state"], self.play)
             
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_action_state(self.current_state["blurred_state"], new_state["blurred_state"], action)
-            print("number options " + str(len(self.q)))
+            #print("tree size " + str(len(self.q)))
             if option != self.explore_option:
                 self.q.update_q_value(self.current_state["blurred_state"], option, reward, new_state["blurred_state"])
 

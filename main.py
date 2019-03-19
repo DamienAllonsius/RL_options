@@ -3,7 +3,7 @@ import sys, time
 sys.path.append('gridenvs')
 import gridenvs.examples  # load example gridworld environments
 import gym
-import time
+import subprocess
 from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
@@ -16,8 +16,10 @@ def make_environment_agent(env_name, type_agent, seed):
     """
     np.random.seed(seed)
     if type_agent == "AgentOption":
-        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, blurred = BLURRED, gray_scale = GRAY_SCALE, number_gray_colors = NUMBER_GRAY_COLORS)
+        env = ObservationZoneWrapper(gym.make(ENV_NAME), zone_size_x = ZONE_SIZE_X, zone_size_y = ZONE_SIZE_Y, zone_size_master_x = ZONE_SIZE_MASTER_X, zone_size_master_y = ZONE_SIZE_MASTER_Y, blurred = BLURRED, gray_scale = GRAY_SCALE, number_gray_colors = NUMBER_GRAY_COLORS)
+        env.seed(seed) # There is randomness in ATARI !
         obs = env.reset() #first output : observation, second output : blurred observation
+        #ATARI_state = env.unwrapped.clone_full_state()
         type_exploration = "OptionExplore"
         number_actions = env.action_space.n
         agent = AgentOption(current_state = obs, number_actions = number_actions, type_exploration = type_exploration, play = False)
@@ -47,31 +49,39 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t>2000
+    display_learning = False
     full_lives = {'ale.lives': 6}
-        
-    while not(done):
+
+    start = time.time()
+    while not(done):    
         if display_learning:
-            env.render(blurred_render = True, gray_scale = True)
+            env.render(blurred_render = False, gray_scale_render = True)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
             running_option = True
-                
+            
         # else, let the current option act
         action = option.act()
         obs, reward, done, info = env.step(action)
         end_option = option.update_option(reward, obs, action, info['ale.lives'])
-        
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
             #agent.update_agent(new_position, new_agent_state, option, action)
             # In this case the option ended normally and the process continues
             running_option = False
-            agent.update_agent(obs, option, action)
+            positive_reward = agent.update_agent(obs, option, action)
+            if positive_reward:
+                subprocess.Popen(['notify-send', "got a posive reward !"])
+                positive_reward = True
+                print("\033[93m got a posive reward !")
+                #ATARI_state = env.unwrapped.clone_full_state()
 
         done = (info != full_lives)
+
+    end = time.time()
+    print(end - start)
 
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
@@ -103,6 +113,7 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
     for t in tqdm(range(1, iteration + 1)):
         # reset the parameters
         env.reset()
+        #env.unwrapped.restore_full_state(ATARI_state)
         if type(agent).__name__ == "AgentOption":
             act_options(env, t, initial_setting)
             
