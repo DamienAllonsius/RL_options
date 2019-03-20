@@ -109,17 +109,25 @@ class AgentOption():
             self.position = new_position
             
     def update_q_function_options(self, new_state, option, reward):
+
+        #print(Option.option_index)
+
+
+
         """
         only update option(state b, state a) in state b if option(state a, state b) does not already exist in state a.
         """
 
+
         if self.no_return_update(new_state):
             assert self.state[0] - new_state[0] in [Point(0, 1), Point(0, 0), Point(0, -1), Point(1, 0), Point(-1, 0)], "options can only jump from a zone to another adjacent one. Current state " + str(self.state) + " new state " + str(new_state)
             action = OptionDQN(self.position, self.state, new_state, self.grid_size_option,
-                               DQNvariables.ACTION_SPACE, DQNvariables.state_dimension, DQNvariables.buffer,
-                               DQNvariables.main_model_nn, DQNvariables.target_model_nn, DQNvariables.EPSILON_DECAY_RATE,
-                               DQNvariables.UPDATE_TARGET_FREQ, DQNvariables.upd_target, DQNvariables.GAMMA, DQNvariables.BATCH_SIZE,
+                               DQNvariables.ACTION_SPACE, DQNvariables.state_dimension, DQNvariables.MEMORY_CAPACITY,
+                               DQNvariables.EPSILON_DECAY_RATE,DQNvariables.UPDATE_TARGET_FREQ, DQNvariables.GAMMA, DQNvariables.BATCH_SIZE,
                                DQNvariables.MIN_EPSILON, DQNvariables.tf_sess, self.play)
+
+            #action = Option(self.position, self.state, new_state, self.grid_size_option, self.play)
+
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_dict_action_space(self.state, new_state, action, reward)
             if option != self.explore_option:

@@ -8,6 +8,8 @@ import time
 import numpy as np
 from variables import *
 import random
+from agent.Models import *
+from agent.Utils import *
 """
 TODO : all the Option classes have now to inherit from OptionAbstract class.
 """
@@ -43,36 +45,59 @@ class OptionAbstract(object):
 
 class OptionDQN(OptionAbstract):
 
-    def __init__(self, position, initial_state, terminal_state, grid_size_option, action_space, state_dimension, buffer,
-                 main_model_nn, target_model_nn, epsilon_step, update_target_freq, update_fn, gamma, batch_size, MIN_EPSILON,
-                 tf_sess, play = False):
+    random.seed(1)
+
+    exp = 0
+    epsilon = 1
+    option_index=0
+
+    def __init__(self, position, initial_state, terminal_state, grid_size_option, action_space, state_dimension, buffer_size,epsilon_step,
+                update_target_freq, gamma, batch_size, MIN_EPSILON,tf_sess, play = False):
         super().__init__(initial_state, terminal_state, play)
+
+        self.grid_size_option = grid_size_option
+        self.position = self.get_position(position)
+        self.cardinal = Direction.cardinal()
+        self.number_actions = len(Direction.cardinal())
+        self.reward_for_agent = 0
 
         self.action_space = action_space
         self.state_dimension = state_dimension
-        self.buffer = buffer
-        self.main_model_nn = main_model_nn
-        self.target_model_nn = target_model_nn
+        self.buffer = Memory(buffer_size)
+
+        self.main_model_nn = DenseQnetwork([None, 1], 128, len(self.action_space), 'mainQn'+str(OptionDQN.option_index), 'cpu:0')
+
+        self.target_model_nn = DenseQnetwork([None, 1], 128, len(self.action_space), 'targetQn'+str(OptionDQN.option_index), 'cpu:0')
+
+        self.ID = "OptionDQN - " + str(OptionDQN.option_index)
+
+        OptionDQN.option_index += 1
 
         self.epsilon_step = epsilon_step
         self.update_target_freq = update_target_freq
-        self.update_fn = update_fn
         self.gamma = gamma
         self.batch_size = batch_size
         self.MIN_EPSILON = MIN_EPSILON
         self.tf_sess = tf_sess
 
-    def act(self, s):
-        if random.random() < self.epsilon:
-            return random.choice(self.action_space)
-        else:
-            index_action = self.main_model_nn.prediction(self.tf_sess, [s])[0]
+    def act(self):
 
-            return self.action_space[index_action]
+        s = [self.position]
+
+        if self.play:
+            index_action = self.main_model_nn.prediction(self.tf_sess, [s])[0]
+            return self.cardinal[index_action]
+
+        else:
+
+            if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
+                return self.cardinal[np.random.randint(self.number_actions)]
+            else:
+                index_action = self.main_model_nn.prediction(self.tf_sess, [s])[0]
+                return self.cardinal[index_action]
 
     def _get_tderror(self, batch):
         no_state = np.zeros(self.state_dimension)
-
         states = np.array([o[1][0] for o in batch])
         states_ = np.array([(no_state if o[1][3] is None else o[1][3]) for o in batch])
 
@@ -92,7 +117,7 @@ class OptionDQN(OptionAbstract):
             s_ = o[3]
 
             t = p[i]
-            a_index = self.action_space.index(a)
+            a_index = a
             old_val = t[a_index]
             if s_ is None:
                 t[a_index] = r
@@ -106,10 +131,9 @@ class OptionDQN(OptionAbstract):
         return x, y, errors
 
     def observe(self, sample):  # in (s, a, r, s_) format
-        #x, y, errors = self._get_tderror([(0, sample)])
         self.buffer.add(sample)
         if self.exp % self.update_target_freq == 0:
-            self.update_fn.update(self.tf_sess)
+            self.target_model_nn.model.set_weights(self.main_model_nn.model.get_weights())
 
         # slowly decrease Epsilon based on our experience
         self.exp += 1
@@ -118,14 +142,14 @@ class OptionDQN(OptionAbstract):
 
     def replay(self):
         batch, imp_w = self.buffer.sample(self.batch_size)
-        if self.analyze_memory:
-            self.analyze_memory.add_batch(batch)
+        #print(self.buffer.ID, batch[0])
         x, y, errors = self._get_tderror(batch)
-
+        #print(x[0], y[0])
         # update errors
         for i in range(len(batch)):
             idx = batch[i][0]
             self.buffer.update(idx, errors[i])
+
         _, loss = self.main_model_nn.train(self.tf_sess, x, y, imp_w)
         return loss
 
@@ -135,9 +159,15 @@ class OptionDQN(OptionAbstract):
         """
         return self.cardinal.index(direction)
 
+    def get_position(self, point):
+        """
+        point is the current position on the whole grid.
+        point is projected into the zone
+        """
+        projected_point = point % self.grid_size_option
+        return projected_point.x + self.grid_size_option.x * projected_point.y
+
     def update_option(self, reward, new_position, new_state, action):
-
-
 
         encoded_new_position = self.get_position(new_position)
         if self.play:
@@ -146,7 +176,6 @@ class OptionDQN(OptionAbstract):
 
         else:
             encoded_action = self.encode_direction(action)
-            max_value_action = np.max(self.q[encoded_new_position])
             total_reward = reward + PENALTY_OPTION_ACTION
             end_option = self.check_end_option(new_state)
             self.reward_for_agent += total_reward
@@ -158,9 +187,11 @@ class OptionDQN(OptionAbstract):
                 else:
                     total_reward += PENALTY_END_OPTION
 
-        self.observe((self.initial_state, encoded_action, total_reward, new_state))
+        self.observe(([self.position], encoded_action, total_reward, [encoded_new_position]))
 
         self.replay()
+
+        self.position = encoded_new_position
 
         return end_option
      
@@ -168,9 +199,11 @@ class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
     """
+    option_index = 0
+
     def __init__(self, position, initial_state, terminal_state, grid_size_option, play):
         """
-        here grid_size_option is the size of the zone 
+        here grid_size_option is the size of the zone
         """
         self.play = play
         self.grid_size_option = grid_size_option
@@ -182,6 +215,10 @@ class Option(object):
         self.initial_state = initial_state
         self.terminal_state = terminal_state
         self.reward_for_agent = 0
+
+        self.ID = "Option - " + str(Option.option_index)
+
+        Option.option_index += 1
 
     def __repr__(self):
         return "".join(["Option(", str(self.initial_state), ",", str(self.terminal_state), ")"])
@@ -257,9 +294,15 @@ class OptionExplore(object):
     """
     This is a special option to explore. No q_function is needed here.
     """
+    option_index = 0
+
     def __init__(self, initial_state):
         self.initial_state = initial_state
         self.reward_for_agent = 0
+
+        self.ID = "OptionExplore - " + str(OptionExplore.option_index)
+
+        OptionExplore.option_index += 1
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)
@@ -291,6 +334,8 @@ class OptionExplore(object):
 
 class OptionExploreQ(Option):
 
+    option_index = 0
+
     def __init__(self, position, initial_state, grid_size_option, last_action):
         self.grid_size_option = grid_size_option
         self.number_state = grid_size_option.x * grid_size_option.y
@@ -301,6 +346,10 @@ class OptionExploreQ(Option):
         self.reward_for_agent = 0
         self.q = {}
         self.exploration_terminated = {}
+
+        self.ID = self.ID = "OptionExploreQ - " + str(OptionExploreQ.option_index)
+
+        OptionExploreQ.option_index += 1
 
     def __eq__(self, other):
         return type(other).__name__ == self.__class__.__name__

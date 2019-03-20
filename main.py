@@ -8,6 +8,7 @@ from tqdm import tqdm
 from agent.agent import KeyboardAgent, AgentOption, QAgent
 from gridenvs.utils import Point
 from variables import *
+import matplotlib.pyplot as plt
 
 
 
@@ -66,7 +67,17 @@ def action_options(env, action, t, play):
                 
         # else, let the current option act
         action = option.act()
+        print(option.ID)
+        #print(action, option.position)
+
         state, reward, done, info = env.step(action)
+        if(False):
+            plt.imshow(state)
+            plt.draw()
+            plt.pause(0.1)
+            plt.ioff()
+            plt.close()
+
         new_position, new_state = info['position'], (info['zone'], info['state_id'])
         end_option = option.update_option(reward, new_position, new_state, action)
         # if the option ended then update the agent's data
@@ -139,6 +150,7 @@ type_agent = "AgentOption"
 for seed in range(NUMBER_SEEDS):
     env, agent = make_environment_agent(env_name, type_agent = type_agent)
     INITIAL_AGENT_POSITION = agent.position
+
     
     if type_agent == "AgentOption":
         INITIAL_AGENT_STATE = agent.state

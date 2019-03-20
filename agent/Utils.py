@@ -28,12 +28,16 @@ class Memory:  # stored as ( s, a, r, s_ ) in SumTree
 
     absolute_error_upper = 1.
 
+    instance_counter = 0
+
     PER_b = 0.4  # importance-sampling, from initial value increasing to 1
 
     PER_b_increment_per_sampling = 0.001
 
     def __init__(self, capacity):
         self.tree = SumTree(capacity)
+        self.ID = "Memory - " + str(Memory.instance_counter)
+        Memory.instance_counter += 1
 
     def _get_priority(self, error):
         return (error + self.e) ** self.a
