@@ -205,7 +205,11 @@ class QTree(QAbstract):
         self.reset()
 
     def __len__(self):
-        return len(self.get_states())
+        nb_opt = 0
+        for state in self.get_states():
+            nb_opt += len(self.get_actions(state))
+
+        return nb_opt
 
     def reset(self):
         self.current_node = self.tree.root

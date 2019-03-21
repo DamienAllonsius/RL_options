@@ -137,13 +137,13 @@ class AgentOption(object):
         _update the q function value
         _update the state
         """
-        self.display_Qtree(new_state["blurred_state"])
+        #self.display_Qtree(new_state["blurred_state"])
         if self.play:
             self.current_state = new_state
             
         else:
 #            self.last_action = action    
-            total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent 
+            total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
             self.update_q_function_options(new_state, option, total_reward)
             self.current_state = new_state
             self.personal_reward += option.reward_for_agent
@@ -157,7 +157,7 @@ class AgentOption(object):
             
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_action_state(self.current_state["blurred_state"], new_state["blurred_state"], action)
-            #print("tree size " + str(len(self.q)))
+            print("number of options: " + str(len(self.q)))
             if option != self.explore_option:
                 self.q.update_q_value(self.current_state["blurred_state"], option, reward, new_state["blurred_state"])
 

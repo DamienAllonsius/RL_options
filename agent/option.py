@@ -62,7 +62,7 @@ class Option(object):
             return end_option
 
         else:
-            self.reward_for_agent += reward
+            #self.reward_for_agent += reward
             lost_life = (self.lives > remaining_lives)
             total_reward = self.compute_total_reward(reward, end_option, new_state["blurred_state"], lost_life)
             
@@ -74,6 +74,7 @@ class Option(object):
       
     def compute_total_reward(self, reward, end_option, new_state_blurred, lost_life):
         total_reward = reward + PENALTY_OPTION_ACTION
+        self.reward_for_agent = reward
         if end_option:
             if new_state_blurred == self.terminal_state:
                 total_reward += REWARD_END_OPTION
@@ -84,8 +85,8 @@ class Option(object):
 #                print("missed")
                 
         if lost_life:
-#            self.reward_for_agent += PENALTY_LOST_LIFE
             total_reward += PENALTY_LOST_LIFE
+            self.reward_for_agent += PENALTY_LOST_LIFE
             
         return total_reward
 
