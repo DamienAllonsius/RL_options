@@ -51,10 +51,11 @@ def act_options(env, t, initial_setting):
     #start the loop
     done = False
     full_lives = {'ale.lives': 6}
-    display_learning = t>15000 and t<20000
+    display_learning = False
     while not(done):
         if display_learning:
-            env.render(blurred_render = True, gray_scale_render = True, agent = True)
+            env.render(blurred_render = False, gray_scale_render = False, agent = False)
+            time.sleep(0.02)
         # if no option acting, choose an option
         if not(running_option):
             option = agent.choose_option(t)
@@ -76,7 +77,7 @@ def act_options(env, t, initial_setting):
                 print("\033[93m got a posive reward !")
                 #ATARI_state = env.unwrapped.clone_full_state()
 
-        done = (info != full_lives)
+        #done = (info != full_lives)
 
 def act(env, t, initial_setting):
     agent.reset(initial_setting)
