@@ -1,8 +1,8 @@
 from gridenvs.utils import Point, Direction
-from variables import *
 from planning.tree import Tree
 import numpy as np
 import time
+
 class QAbstract(object):
     """ 
     Contains the q value function which maps a state and an action to a value
@@ -82,7 +82,7 @@ class QAbstract(object):
         self.add_action_to_state(state, action)
         self.add_state(new_state)
 
-    def update_q_value(self, state, action, reward, new_state):
+    def update_q_value(self, state, action, reward, new_state, learning_rate):
         if self.is_state(state):
             if self.is_actions(new_state):
                 best_value, _ = self.find_best_action(new_state)
@@ -90,12 +90,12 @@ class QAbstract(object):
             else:
                 best_value = 0
 
-            self.learning_update(state, action, reward, best_value)
+            self.learning_update(state, action, reward, best_value, learning_rate)
 
         else:
             raise Exception('unhable to update q since state does not exist')
 
-    def learning_update(self, state, action, reward, best_value):
+    def learning_update(self, state, action, reward, best_value, learning_rate):
         """
         Q learning procedure :
         Q_{t+1}(current_position, action) =
@@ -103,7 +103,7 @@ class QAbstract(object):
         + learning_rate * [reward + max_{actions} Q_(new_position, action)]
         """
         previous_value = self.get_value(state, action)
-        self.set_value(state, action, previous_value * (1 - LEARNING_RATE) + LEARNING_RATE * (reward + best_value))
+        self.set_value(state, action, previous_value * (1 - learning_rate) + learning_rate * (reward + best_value))
 
     def get_random_action(self, state):
         raise Exception("Not Implemented")
@@ -202,8 +202,8 @@ class QTree(QAbstract):
     """
     def __init__(self, state):
         self.tree = Tree(state)
-        self.reset()
-
+        self.current_node = self.tree.root
+        
     def __len__(self):
         nb_opt = 0
         for state in self.get_states():
@@ -211,8 +211,8 @@ class QTree(QAbstract):
 
         return nb_opt
 
-    def reset(self):
-        self.current_node = self.tree.root
+    def reset(self, initial_state):
+        self.current_node = self.get_node_from_state(initial_state)
 
     def str_QTree(self, next_node_data):
         return self.tree.str_tree(self.current_node.data, next_node_data)
@@ -362,7 +362,7 @@ class QArray(QAbstract):
         else:
             return True
 
-    def update_q_value(self, state, action, reward, new_state, end_option):
+    def update_q_value(self, state, action, reward, new_state, end_option, learning_rate):
         new_state_idx = self.state_list.index(new_state)
         state_idx = self.state_list.index(state)
         if end_option:
@@ -371,7 +371,7 @@ class QArray(QAbstract):
         else:
             best_value = np.max(self.actions[new_state_idx])
 
-        self.actions[state_idx][action] = (1 - LEARNING_RATE) * self.actions[state_idx][action]  + LEARNING_RATE * (reward + best_value)
+        self.actions[state_idx][action] = (1 - learning_rate) * self.actions[state_idx][action]  + learning_rate * (reward + best_value)
 
 # class QArray(QAbstract):
 #     """

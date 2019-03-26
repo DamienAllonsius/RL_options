@@ -7,18 +7,17 @@ import time
 
 from agent.option import Option, OptionExplore#, OptionExploreQ
 from agent.q import QTree
-from variables import *
 from data.save import SaveData
 
 class AgentOption(object): 
 
-    def __init__(self, current_state, number_actions, type_exploration, play):
+    def __init__(self, current_state, number_actions, type_exploration, play, experiment_data):
+        self.experiment_data = experiment_data
         self.number_actions = number_actions
 #        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
         self.current_state = current_state
         self.q = QTree(current_state["blurred_state"])
-        self.personal_reward = 0 # the personal reward of the agent, not used for updating policy
         self.type_exploration = type_exploration
         if not(play):
             if type_exploration == "OptionExplore":
@@ -80,8 +79,7 @@ class AgentOption(object):
         """
         Same as __init__ but the q function is preserved
         """
-        self.q.reset()
-        self.personal_reward = 0
+        self.q.reset(initial_agent_state["blurred_state"])
         self.current_state = initial_agent_state
         self.reset_explore_option()
 
@@ -122,10 +120,9 @@ class AgentOption(object):
                             best_option = opt
                     
                 best_option.reward_for_agent = 0
+                best_option.current_reward = 0
                 best_option.set_current_state(self.current_state["state"])  # update the option's current state ! 
-                #print("0. agent.q " + str(self.q))
-                #print("1. best option : " +str(best_option))
-                #print("2. best_option.q : " +str(best_option.q))
+
                 return best_option
             
     def update_agent(self, new_state, option, action):
@@ -143,23 +140,20 @@ class AgentOption(object):
             
         else:
 #            self.last_action = action    
-            total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
+            total_reward = self.experiment_data["PENALTY_AGENT_ACTION"] + option.reward_for_agent #+ option.lost_life * self.experiment_data["PENALTY_LOST_LIFE"]
             self.update_q_function_options(new_state, option, total_reward)
             self.current_state = new_state
-            self.personal_reward += option.reward_for_agent
-            
-            return option.reward_for_agent > 0
             
     def update_q_function_options(self, new_state, option, reward):
         if self.q.no_return_update(self.current_state["blurred_state"], new_state["blurred_state"]):
 
-            action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred_state"], self.play)
+            action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred_state"], self.play, self.experiment_data)
             
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_action_state(self.current_state["blurred_state"], new_state["blurred_state"], action)
-            print("number of options: " + str(len(self.q)))
+            #print("number of options: " + str(len(self.q)))
             if option != self.explore_option:
-                self.q.update_q_value(self.current_state["blurred_state"], option, reward, new_state["blurred_state"])
+                self.q.update_q_value(self.current_state["blurred_state"], option, reward, new_state["blurred_state"], self.experiment_data["LEARNING_RATE"])
 
         else:
             self.q.update_current_node(new_state["blurred_state"])
@@ -209,6 +203,7 @@ class QAgent(object):
     this class has to be refactored 
     """
     def __init__(self, position, number_actions, grid_size, play):
+        raise Exception("not implemented")
         self.play = play
         self.grid_size = grid_size
         self.number_state = 2 * grid_size.x * grid_size.y + 1
@@ -238,7 +233,7 @@ class QAgent(object):
         encoded_action = self.encode_direction(action)
         encoded_position = self.encode_position(new_position)
         max_value_action = np.max(self.q[encoded_position])
-        total_reward = reward + PENALTY_ACTION
+        total_reward = reward + PENALTY_QAGENT_ACTION
         self.personal_reward += total_reward
         self.q[self.position, encoded_action] *= (1 - LEARNING_RATE)
         self.q[self.position, encoded_action] += LEARNING_RATE * (total_reward + max_value_action)

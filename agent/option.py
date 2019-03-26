@@ -6,17 +6,17 @@ from gridenvs.utils import Point
 from agent.q import QArray
 import time
 import numpy as np
-from variables import *
 
 class Option(object):
     """
     This class is doing Q learning, where Q is a matrix (we know the number of states and actions)
     """
-    def __init__(self, number_actions, initial_state, current_state, terminal_state, play):
+    def __init__(self, number_actions, initial_state, current_state, terminal_state, play, experiment_data):
         """
         here grid_size_option is the size of the zone 
         state are always of high resolution except if stated otherwise in the variable name
         """
+        self.experiment_data = experiment_data
         self.play = play
         self.number_actions = number_actions
         self.q = QArray(current_state, number_actions)
@@ -24,6 +24,7 @@ class Option(object):
         self.current_state = current_state # high resolution image
         self.terminal_state = terminal_state # blurred image
         self.reward_for_agent = 0 # the positive rewards received by the environment
+        self.lost_life = False
         self.lives = None
 
     def __repr__(self):
@@ -63,30 +64,29 @@ class Option(object):
 
         else:
             #self.reward_for_agent += reward
-            lost_life = (self.lives > remaining_lives)
-            total_reward = self.compute_total_reward(reward, end_option, new_state["blurred_state"], lost_life)
+            self.lost_life = (self.lives > remaining_lives)
+            total_reward = self.compute_total_reward(reward, end_option, new_state["blurred_state"], action)
             
             self.q.update_q_action_state(self.current_state, new_state["state"], action)
-            self.q.update_q_value(self.current_state, action, total_reward, new_state["state"], end_option)
+            self.q.update_q_value(self.current_state, action, total_reward, new_state["state"], end_option, self.experiment_data["LEARNING_RATE"])
             self.lives = remaining_lives
             self.current_state = new_state["state"]
             return end_option
       
-    def compute_total_reward(self, reward, end_option, new_state_blurred, lost_life):
-        total_reward = reward + PENALTY_OPTION_ACTION
+    def compute_total_reward(self, reward, end_option, new_state_blurred, action):
+        total_reward = reward + self.experiment_data["PENALTY_OPTION_ACTION"] * (action != 0)
         self.reward_for_agent = reward
         if end_option:
             if new_state_blurred == self.terminal_state:
-                total_reward += REWARD_END_OPTION
+                total_reward += self.experiment_data["REWARD_END_OPTION"]
 #                print("option terminated correctly")
                 
             else:
-                total_reward += PENALTY_END_OPTION
+                total_reward += self.experiment_data["PENALTY_END_OPTION"]
 #                print("missed")
                 
-        if lost_life:
-            total_reward += PENALTY_LOST_LIFE
-            self.reward_for_agent += PENALTY_LOST_LIFE
+        if self.lost_life:
+            total_reward += self.experiment_data["PENALTY_LOST_LIFE"]
             
         return total_reward
 
@@ -95,7 +95,7 @@ class Option(object):
             _, best_action = self.q.find_best_action(self.current_state)
 
         else:
-            if np.random.rand() < PROBABILITY_EXPLORE_IN_OPTION:
+            if np.random.rand() < self.experiment_data["PROBABILITY_EXPLORE_IN_OPTION"]:
                 best_action = self.q.get_random_action(self.current_state)
             
             else:
@@ -113,6 +113,7 @@ class OptionExplore(object):
         self.reward_for_agent = 0
         self.number_actions = number_actions
         self.lives = None
+        self.lost_life = False
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)

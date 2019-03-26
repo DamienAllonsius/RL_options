@@ -71,10 +71,6 @@ class Node:
             return self.parent.find_root()
 
     def str_node(self, current_node = None, next_node = None, str_data_fn=lambda node: str(node.data)):
-        red = '\033[91m' 
-        green = '\033[92m'
-        yellow = '\033[93m'
-        white = '\033[0m'
         tab = '   '
         # '\033[91m' if for printing red text in the console !
         if self.data == current_node:
