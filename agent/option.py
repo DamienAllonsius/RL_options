@@ -86,7 +86,7 @@ class Option(object):
 #                print("missed")
                 
         if self.lost_life:
-            total_reward += self.experiment_data["PENALTY_LOST_LIFE"]
+            total_reward += self.experiment_data["PENALTY_LOST_LIFE_FOR_OPTIONS"]
             
         return total_reward
 

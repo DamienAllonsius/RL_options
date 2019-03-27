@@ -1,5 +1,5 @@
 import numpy as np
-import os, sys, time
+import os, sys, time, termios, tty
 sys.path.append('gridenvs')
 import gridenvs.examples 
 import gym
@@ -11,13 +11,14 @@ from gridenvs.utils import Point
 from variables import *
 from wrappers.obs import ObservationZoneWrapper 
 from multiprocessing import Pool
+from datetime import datetime
 
 class Experiment(object):
     """
     This class makes experiments between an agent and its environment
     TODO : agent.reset()
     """
-
+    
     def __init__(self, experiment_name):
         self.experiment_data = return_data(experiment_name)
         if self.experiment_data is None:
@@ -25,10 +26,10 @@ class Experiment(object):
 
         self.seed = None
         self.set_environment()
-        self.save_state(self.env.reset())
-        self.make_agent()
-        os.mkdir("results/" + self.experiment_data["NAME"])
-
+        self.make_agent(self.env.reset())
+        self.save_state(self.agent.initial_state)
+        self.write_setting()
+        
     def set_seed(self, seed):
         self.seed = seed
         np.random.seed(seed)
@@ -36,6 +37,10 @@ class Experiment(object):
 
     def set_environment(self, wrapper_obs = True):
         if wrapper_obs:
+            self.display_learning = True
+            self.blurred_render = False
+            self.gray_scale_render = False
+            self.agent_view = True
             self.env = gym.make(self.experiment_data["ENV_NAME"]).env # to remove wrapper TimeLimit
             self.env = ObservationZoneWrapper(self.env,
                                          zone_size_option_x = self.experiment_data["ZONE_SIZE_OPTION_X"],
@@ -47,26 +52,36 @@ class Experiment(object):
                                          thresh_binary_agent = self.experiment_data["THRESH_BINARY_AGENT"],
                                          gray_scale = self.experiment_data["GRAY_SCALE"])
 
+            self.env.render(blurred_render = self.blurred_render, gray_scale_render = self.gray_scale_render, agent = self.agent_view)
+            self.env.unwrapped.viewer.window.on_key_press = self.key_press
+            self.env.unwrapped.viewer.window.on_key_release = self.key_release
+
         else:
             raise Exception("not implemented yet")
-        
 
     def save_state(self, obs):
-        self.current_observation = obs
-        self.ATARI_state = self.env.unwrapped.clone_full_state()
+        if self.experiment_data["SAVE_STATE"]:
+            self.agent.initial_state = obs
+            self.ATARI_state = self.env.unwrapped.clone_full_state()
 
     def restore_state(self):
-        self.agent.reset(self.current_observation)
-        self.env.unwrapped.restore_full_state(self.ATARI_state)
+        if self.experiment_data["SAVE_STATE"]:
+            self.agent.reset()
+            self.env.unwrapped.restore_full_state(self.ATARI_state)
 
-    def make_agent(self):
+        else:
+            self.agent.reset()
+            self.env.reset()
+
+    def make_agent(self, initial_state):
         self.total_reward = 0
         if self.experiment_data["AGENT"] == "AgentOption":
-            self.agent = AgentOption(current_state = self.current_observation,
-                                number_actions = self.env.action_space.n,
-                                type_exploration = "OptionExplore",
-                                play = False,
-                                experiment_data = self.experiment_data)
+            self.agent = AgentOption(initial_state = initial_state,
+                                     current_state = initial_state,
+                                     number_actions = self.env.action_space.n,
+                                     type_exploration = "OptionExplore",
+                                     play = False,
+                                     experiment_data = self.experiment_data)
             
         else:
             raise Exception("Not implemented yet")
@@ -77,7 +92,14 @@ class Experiment(object):
         f.close()
 
     def write_setting(self):
-        f = open(self.result_file_name, "a")
+        dir_name = "results/" + self.experiment_data["NAME"]
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+        
+        dir_name += "/" + time.asctime( time.localtime(time.time())).replace(" ","_")
+        os.mkdir(dir_name)
+
+        f = open(dir_name + "/" + "setting", "a")
         for key in self.experiment_data:
             f.write(key + " : " + str(self.experiment_data[key]) + "\n")
         f.write("\n" * 3)
@@ -89,22 +111,22 @@ class Experiment(object):
         f.close()
 
     def learn(self):
-
         self.result_file_name = "results/" + self.experiment_data["NAME"] + "/" + "seed_" + str(self.seed)
-        self.write_setting()
         full_lives = {'ale.lives': 6}
-        display_learning = False
         
-        for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):
-            self.restore_state()
+        for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):                
 
+            self.restore_state()
+            
             running_option = False
             done = False
             positive_reward = False
-            
             while not(done):
-                if display_learning:
-                    self.env.render(blurred_render = True, gray_scale_render = True, agent = True)
+                if self.display_learning:
+                    self.env.render(blurred_render = self.blurred_render, gray_scale_render = self.gray_scale_render, agent = self.agent_view)
+
+                else:
+                    self.env.unwrapped.viewer.window.dispatch_events()
 
                 if not(running_option):
                     option = self.agent.choose_option(t)
@@ -113,31 +135,57 @@ class Experiment(object):
                 action = option.act()
                 obs, reward, done, info = self.env.step(action)
                 end_option = option.update_option(reward, obs, action, info['ale.lives'])
+
+                if reward > 0:
+                    self.total_reward += reward
+                    self.write_reward(t)
+                    self.save_state(obs)
+                    done = True
                 
                 if end_option:
                     running_option = False
                     self.agent.update_agent(obs, option, action)
-                    if reward > 0:
-                        self.total_reward += reward
-                        self.save_state(obs)
-                        self.write_reward(t)
 
-                #done = (info != full_lives)
+                done = (info != full_lives)                
+                
         experiment.write_message("Experiment complete.")
+        
+
+    def key_press(self, key, mod):
+        if key == ord("d"):
+            self.display_learning = not self.display_learning
+
+        if key == ord("b"):
+            self.blurred_render = not self.blurred_render
+
+        if key == ord("g"):
+            self.gray_scale_render = not self.gray_scale_render
+
+        if key == ord("a"):
+            self.agent_view = not self.agent_view
+
+    def key_release(self, key, mod):
+        pass
+        
 
 if __name__ == '__main__':
     
-    experiment = Experiment("reload_ATARI_more_zones_for_agent")
+    experiment = Experiment("First_good_results")
+    parallel = False
 
-    number_cores = 8
-    def distribute_seed_and_learn(seed):
-        experiment.set_seed(seed)
+    if parallel:
+        number_cores = 6
+        def distribute_seed_and_learn(seed):
+            experiment.set_seed(seed)
+            experiment.learn()
+
+        p = Pool()
+        p.map(distribute_seed_and_learn, range(number_cores))
+        p.close()
+        p.join()
+
+    else:
         experiment.learn()
-        
-    p = Pool()
-    p.map(distribute_seed_and_learn, range(number_cores))
-    p.close()
-    p.join()
 
 
 # def make_environment_agent(env_name, type_agent, seed):

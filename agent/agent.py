@@ -11,10 +11,10 @@ from data.save import SaveData
 
 class AgentOption(object): 
 
-    def __init__(self, current_state, number_actions, type_exploration, play, experiment_data):
+    def __init__(self, initial_state, current_state, number_actions, type_exploration, play, experiment_data):
+        self.initial_state = initial_state
         self.experiment_data = experiment_data
         self.number_actions = number_actions
-#        self.last_action = 0 #last action : north, east, south, west ?
         self.play = play
         self.current_state = current_state
         self.q = QTree(current_state["blurred_state"])
@@ -26,14 +26,9 @@ class AgentOption(object):
             elif type_exploration == "OptionExploreQ":
                 raise Exception("Fix it !")
                 self.explore_option = OptionExploreQ(current_state, self.number_actions) # special explore options
-                #before on IW branch: self.explore_option = OptionExploreQ(self.position, self.state, self.grid_size_option) # special explore options
                 
             else:
                 raise Exception("type_exploration unknown")
-
-    # def make_save_data(self, seed):
-    #     #TODO : monitor ?
-    #     self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
 
     def display_Qtree(self, next_node_data):
         """
@@ -41,21 +36,6 @@ class AgentOption(object):
         """
         print(self.q.str_QTree(next_node_data))
         
-    # def display_QDict(self, option):
-    #     """
-    #     for QDict
-    #     """
-    #     message = ""
-    #     for state_index in range(len(self.q.q_function)):
-    #         for action in self.q.q_function[state_index]:
-    #             txt = "state " + str(self.q.state_list[state_index]) + " action " + str(action) + " value : " + str(self.q.q_function[state_index][action]) + "\n"
-    #             if action == option:
-    #                 message += '\033[92m' + txt + '\033[0m'
-
-    #             else:
-    #                 message += txt
-                
-    #     return message
 
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
@@ -75,12 +55,12 @@ class AgentOption(object):
          #        self.explore_option.exploration_terminated.update({self.state : False})
 
         
-    def reset(self, initial_agent_state):
+    def reset(self):
         """
         Same as __init__ but the q function is preserved
         """
-        self.q.reset(initial_agent_state["blurred_state"])
-        self.current_state = initial_agent_state
+        self.q.reset(self.initial_state["blurred_state"])
+        self.current_state = self.initial_state
         self.reset_explore_option()
 
     def choose_option(self, t):
@@ -88,28 +68,25 @@ class AgentOption(object):
         if no option : explore
         else flip a coin, then take the best or explore
         """
-        if self.play: # in this case we do not learn anymore
+        if self.play: 
             _, best_option = self.q.find_best_action(self.current_state["blurred_state"])
             best_option.play = True
             return best_option
 
         else:
-            # No option available : explore, and do not count the number of explorations
             if not(self.q.is_actions(self.current_state["blurred_state"])):
                 self.reset_explore_option()
                 return self.explore_option
-            
-            # options are available : if the exploration is not done then continue exploring
 
             elif (self.type_exploration == "OptionExplore" and
                   not(self.explore_option.check_end_option(self.current_state["blurred_state"]))):
                 self.reset_explore_option()
                 return self.explore_option
 
-            elif (type(self.explore_option).__name__ == "OptionExploreQ"
-                  and not(self.explore_option.exploration_terminated[self.current_state["blurred_state"]])):
-                self.reset_explore_option()
-                return self.explore_option
+            # elif (type(self.explore_option).__name__ == "OptionExploreQ"
+            #       and not(self.explore_option.exploration_terminated[self.current_state["blurred_state"]])):
+            #     self.reset_explore_option()
+            #     return self.explore_option
 
             else:
                 best_reward, best_option = self.q.find_best_action(self.current_state["blurred_state"])
@@ -120,9 +97,9 @@ class AgentOption(object):
                             best_option = opt
                     
                 best_option.reward_for_agent = 0
-                best_option.current_reward = 0
-                best_option.set_current_state(self.current_state["state"])  # update the option's current state ! 
-
+                best_option.lost_life = False
+                best_option.set_current_state(self.current_state["state"])
+                
                 return best_option
             
     def update_agent(self, new_state, option, action):
@@ -139,8 +116,7 @@ class AgentOption(object):
             self.current_state = new_state
             
         else:
-#            self.last_action = action    
-            total_reward = self.experiment_data["PENALTY_AGENT_ACTION"] + option.reward_for_agent #+ option.lost_life * self.experiment_data["PENALTY_LOST_LIFE"]
+            total_reward = self.experiment_data["PENALTY_AGENT_ACTION"] + option.reward_for_agent + option.lost_life * self.experiment_data["PENALTY_LOST_LIFE_FOR_AGENT"]
             self.update_q_function_options(new_state, option, total_reward)
             self.current_state = new_state
             
@@ -149,7 +125,6 @@ class AgentOption(object):
 
             action = Option(self.number_actions, self.current_state["blurred_state"], new_state["state"], new_state["blurred_state"], self.play, self.experiment_data)
             
-            # if the state and the action already exist, this line will do nothing
             self.q.update_q_action_state(self.current_state["blurred_state"], new_state["blurred_state"], action)
             #print("number of options: " + str(len(self.q)))
             if option != self.explore_option:
@@ -157,15 +132,6 @@ class AgentOption(object):
 
         else:
             self.q.update_current_node(new_state["blurred_state"])
-    
-    # def record_reward(self, t):
-    #     """
-    #     save the reward in a file following this pattern:
-    #     iteration_1 reward_1
-    #     iteration_2 reward_2
-    #     iteration_3 reward_3
-    #     """
-    #     self.save_data.record_data(t, self.personal_reward)
 
 
 class KeyboardAgent(object):
