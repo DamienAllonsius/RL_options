@@ -1,5 +1,5 @@
 import numpy as np
-import os, sys, time, termios, tty
+import os, sys, time
 sys.path.append('gridenvs')
 import gridenvs.examples 
 import gym
@@ -37,7 +37,7 @@ class Experiment(object):
 
     def set_environment(self, wrapper_obs = True):
         if wrapper_obs:
-            self.display_learning = True
+            self.display_learning = False
             self.blurred_render = False
             self.gray_scale_render = False
             self.agent_view = True
@@ -97,6 +97,7 @@ class Experiment(object):
             os.mkdir(dir_name)
         
         dir_name += "/" + time.asctime( time.localtime(time.time())).replace(" ","_")
+        self.result_dir_name = dir_name
         os.mkdir(dir_name)
 
         f = open(dir_name + "/" + "setting", "a")
@@ -111,7 +112,7 @@ class Experiment(object):
         f.close()
 
     def learn(self):
-        self.result_file_name = "results/" + self.experiment_data["NAME"] + "/" + "seed_" + str(self.seed)
+        self.result_file_name = self.result_file_name + "/" + "seed_" + str(self.seed)
         full_lives = {'ale.lives': 6}
         
         for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):                
@@ -122,6 +123,7 @@ class Experiment(object):
             done = False
             positive_reward = False
             while not(done):
+
                 if self.display_learning:
                     self.env.render(blurred_render = self.blurred_render, gray_scale_render = self.gray_scale_render, agent = self.agent_view)
 

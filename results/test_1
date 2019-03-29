@@ -1,0 +1,60 @@
+positive reward at t = 898
+positive reward at t = 1162
+positive reward at t = 1192
+positive reward at t = 1207
+positive reward at t = 1212
+positive reward at t = 1263
+positive reward at t = 1430
+positive reward at t = 1468
+positive reward at t = 1484
+positive reward at t = 1609
+positive reward at t = 1757
+positive reward at t = 1880
+positive reward at t = 1887
+positive reward at t = 1903
+positive reward at t = 1912
+positive reward at t = 1958
+
+param
+ITERATION_LEARNING = 100000
+LEARNING_RATE = 0.1
+
+PROBABILITY_EXPLORE_FOR_AGENTOPTION = 0.0 # useless with OptionExploreQ
+PROBABILITY_EXPLORE_IN_OPTION = 0.1
+PROBABILITY_EXPLORE_FOR_QAGENT = 0.1
+
+# Zones setting
+NUMBER_ZONES_MONTEZUMA_X = (2**5)*5
+NUMBER_ZONES_MONTEZUMA_Y = 2*3*5*7
+
+NUMBER_ZONES_OPTION_X = (2**3)*5
+NUMBER_ZONES_OPTION_Y = 3*7
+ZONE_SIZE_OPTION_X = NUMBER_ZONES_MONTEZUMA_X // NUMBER_ZONES_OPTION_X #160 Montezuma
+ZONE_SIZE_OPTION_Y = NUMBER_ZONES_MONTEZUMA_Y // NUMBER_ZONES_OPTION_Y #210 Montezuma (130 with cut-off)
+THRESH_BINARY_OPTION = 0
+
+NUMBER_ZONES_AGENT_X = 2**3
+NUMBER_ZONES_AGENT_Y = 7
+ZONE_SIZE_AGENT_X = NUMBER_ZONES_MONTEZUMA_X // NUMBER_ZONES_AGENT_X #160 Montezuma
+ZONE_SIZE_AGENT_Y = NUMBER_ZONES_MONTEZUMA_Y // NUMBER_ZONES_AGENT_Y #210 Montezuma (130 with cut-off)
+THRESH_BINARY_AGENT = 30
+
+BLURRED = True
+GRAY_SCALE = True
+
+REWARD_END_OPTION = 100
+PENALTY_END_OPTION = - 100
+PENALTY_OPTION_ACTION = -1
+
+PENALTY_ACTION = - 1
+PENALTY_LOST_LIFE = - 1000
+PENALTY_AGENT_ACTION = 0 # should stay 0 for the moment
+
+NUMBER_ACTIONS = 4
+
+#ENV_NAME = 'GE_MazeOptions-v1'
+ENV_NAME = 'MontezumaRevenge-v0'
+#ENV_NAME = 'Pong-v0'
+
+NUMBER_SEEDS = 1
+

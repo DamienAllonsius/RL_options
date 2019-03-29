@@ -25,7 +25,7 @@ def return_data(name):
                 "NUMBER_ZONES_MONTEZUMA_Y" : 2*3*5*7,
                 
                 "NUMBER_ZONES_OPTION_X" : (2**3)*5,
-                "NUMBER_ZONES_OPTION_Y" : 3*7,
+                "NUMBER_ZONES_OPTION_Y" : 3*5*7,
                 "THRESH_BINARY_OPTION" : 0,
      
                 "NUMBER_ZONES_AGENT_X" :2**3,
@@ -39,7 +39,7 @@ def return_data(name):
                 "PENALTY_END_OPTION" : - 100,
                 "PENALTY_OPTION_ACTION" : 0,
      
-                "PENALTY_LOST_LIFE_FOR_OPTIONS" : - 100,
+                "PENALTY_LOST_LIFE_FOR_OPTIONS" : - 1000,
                 "PENALTY_LOST_LIFE_FOR_AGENT" : - 1000,
                 "PENALTY_AGENT_ACTION" : 0, # should stay 0 for the moment
 

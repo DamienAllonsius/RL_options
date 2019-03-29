@@ -212,7 +212,8 @@ class QTree(QAbstract):
         return nb_opt
 
     def reset(self, initial_state = None):
-        self.current_node = self.get_node_from_state(initial_state)
+        self.current_node = self.tree.root
+        #self.current_node = self.get_node_from_state(initial_state)
 
     def str_QTree(self, next_node_data):
         return self.tree.str_tree(self.current_node.data, next_node_data)
