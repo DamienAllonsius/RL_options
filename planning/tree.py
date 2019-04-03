@@ -1,36 +1,64 @@
-import numpy as np
 from collections import defaultdict
 from planning.utils import *
-#from utils import *
-import time
+import numpy as np
+from variables import *
 
-class Node:
+
+class Node(object):
     def __init__(self, data, parent=None):
-        self.values = []
-        self.data = data #a.k.a state
-        self.actions = []
+        self.value = 0
+        self.number_visits = 0
+        self.data = data  # a.k.a state
+
         self.parent = parent
         if self.parent:
             self.parent.children.append(self)
             self.depth = self.parent.depth + 1
-            
+
         else:
             self.depth = 0
-            
+
         self.children = []
 
+    def __repr__(self):
+        return "data: " + str(self.data)
+
     def __str__(self):
-        tab = "    "
         s = str(self.data) + " at depth " + str(self.depth) + "\n"
-        if self.parent != None:
+        if self.parent is not None:
             s += "parent: " + str(self.parent.data) + "\n"
-            
+
         s += "node and children:" + "\n"
         s += self.str_node(self)
-        for k in range(len(self.actions)):
-            s += "action: " +str(self.actions[k]) + " value: " + str(self.values[k]) + "\n"
+        for k in range(len(self.children)):
+            s += "action: " + str(k) + " value: " + str(self.children[k]) + "\n"
+
         return s
-        
+
+    def str_node(self, current_node=None, next_node=None, str_data_fn=lambda node: str(node.data)):
+        if self.data == current_node:
+            s = red
+
+        else:
+            s = green
+
+        s += str_data_fn(self) + '\n'
+        for node in self.depth_first():
+            d = node.depth - self.depth
+            if d > 0:
+                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])
+                if node.data == current_node:
+                    s += red
+
+                elif node.data == next_node:
+                    s += yellow
+
+                else:
+                    s += green
+
+                s += tex + green
+        return s + white
+
     def depth_first(self):
         yield self
         for child in self.children:
@@ -70,41 +98,9 @@ class Node:
         else:
             return self.parent.find_root()
 
-    def str_node(self, current_node = None, next_node = None, str_data_fn=lambda node: str(node.data)):
-        tab = '   '
-        # '\033[91m' if for printing red text in the console !
-        if self.data == current_node:
-            s = red
+    def get_values(self):
+        return [child.value for child in self.children]
 
-        else:
-            s = green
-
-        s += str_data_fn(self) + '\n'
-        for node in self.depth_first():
-            d = node.depth - self.depth
-            if d > 0:
-                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])
-                if node.data == current_node:
-                    s += red
-                    
-                elif node.data == next_node:
-                    s += yellow
-
-                else:
-                    s += green
-                    
-                s += tex + green
-        return s + white
-
-# a = Node(1)
-# b = a.add(2)
-# c = a.add(3)
-# d = a.add(4)
-# e = c.add(5)
-# c.add(6)
-
-# for node in a.depth_first():
-#     print(node.data)
 
 class Tree:
     """
@@ -113,67 +109,78 @@ class Tree:
     """
 
     def __init__(self, root_data):
-        self.new_root(Node(root_data))
+        self.root = Node(root_data)
+        self.max_depth = 0
+        self.nodes = list()
+        self.depth = defaultdict(list)
 
     def __len__(self):
         return len(self.nodes)
 
-    def str_tree(self, current_node = None, next_node = None, str_data_fn=lambda node: str(node.data) + ". depth : " + str(node.depth)):
-        return (self.root.str_node(current_node, next_node, str_data_fn) + " max depth = " + str(self.max_depth))
+    def str_tree(self,
+                 current_node=None,
+                 next_node=None,
+                 str_data_fn=lambda node: str(node.data) + ". depth : " + str(node.depth)):
 
-    def new_root(self, node, keep_subtree=True):
+        return self.root.str_node(current_node, next_node, str_data_fn) + " max depth = " + str(self.max_depth)
+
+    def new_root(self, node):
         node.make_root()
         self.root = node
         self.max_depth = 0
         self.nodes = list()
         self.depth = defaultdict(list)
-        if not keep_subtree:
-            node.children = list()  # remove children
+
         for n in self.root.breadth_first():
             self._add(n)  # iterate through children nodes and add them to the depth list
 
     def _add(self, node):
         self.depth[node.depth].append(node)
         self.nodes.append(node)
-        if node.depth > self.max_depth: self.max_depth = node.depth
+        if node.depth > self.max_depth:
+            self.max_depth = node.depth
 
     def add_tree(self, parent_node, node):
         """
         add the tree under the parent_node with the right depths
         """
-        node.parent.children.remove(node)  # just to be consistent
+        if not node.is_root():
+            node.parent.children.remove(node)  # just to be consistent
+
         node.parent = parent_node
         old_depth = node.depth
         parent_node.children.append(node)
         for child in node.depth_first():
             child.depth = child.depth - old_depth + (parent_node.depth + 1)
 
-        self.new_root(self.root, keep_subtree = True) # compute the new depths
+        self.new_root(self.root)  # compute the new depths
         return node
 
     def add(self, parent_node, data):
         """
-        Look at the node in the tree. 
+        Look at the node in the tree.
         If it does not exist, create it.
         If it exists above, do nothing.
         If it exists below, cut it and add it to the parent_node
         """
         for node in self.root.depth_first():
             if node.data == data:
-                if node.parent == parent_node: # node exists: do nothing
+                node.number_visits += 1
+                if node.parent == parent_node:  # node exists: do nothing
                     return node
-                
-                elif node.depth > parent_node.depth + 1: # node is below = ?
+
+                elif node.depth > parent_node.depth + 1:  # node is below = ?
                     return self.add_tree(parent_node, node)
 
-                else: # node is above
+                else:  # node is above
                     return node
 
-        child = parent_node.add(data) # node does not exist
+        child = parent_node.add(data)  # node does not exist
         self._add(child)
         return child
 
-    def get_leaves(self, node):
+    @staticmethod
+    def get_leaves(node):
         """
         new idea : track the list of leaves at all time.
         if root : return all the leaves.
@@ -183,57 +190,35 @@ class Tree:
         leaves = []
         for child in node.depth_first():
             if child.is_leaf() and (not child.is_root()):
-                leaves.append(child) 
+                leaves.append(child)
 
         return leaves
 
-    def get_total_depth(self, node, leaves):
-        total_depth = 0
-        for leaf in leaves:
-            total_depth += leaf.depth - node.depth
-
-        return total_depth
-
-    def get_next_data(self, node, leaf):
-        last_data = leaf.data
-        while leaf != node:
-            last_data = leaf.data
+    @staticmethod
+    def get_next_option_index(node, leaf):
+        while leaf.parent != node:
             leaf = leaf.parent
-            
-        return last_data
 
-    def get_random_next_data(self, node):
-        if node.is_leaf():
-            return None
-        
-        probability_leaves = []
-        leaves = self.get_leaves(node)
-        total_depth = self.get_total_depth(node, leaves)
+        return leaf.parent.children.index(leaf)
+
+    @staticmethod
+    def get_probability_leaves(node):
+
+        assert not(node.is_leaf())
+
+        leaves = Tree.get_leaves(node)
+        probability_leaves = np.zeros(len(leaves))
+        idx = -1
         for leaf in leaves:
-            probability_leaves.append((leaf.depth - node.depth) / total_depth)
+            idx += 1
+            probability_leaves[idx] = (leaf.depth - node.depth)
 
+        probability_leaves /= np.sum(probability_leaves)
+
+        return probability_leaves, leaves
+
+    @staticmethod
+    def get_random_next_option_index(node):
+        probability_leaves, leaves = Tree.get_probability_leaves(node)
         selected_leaf = leaves[sample_pmf(probability_leaves)]
-        return self.get_next_data(node, selected_leaf)
-
-# tree = Tree(0)
-# tree.add(tree.root, 12)
-# b = tree.add(tree.root, 4)
-# c = tree.add(tree.root, 2)
-# tree.add(b, 1)
-# tot = tree.add(b, 8)
-# ac = tree.add(tot, 10)
-# z = tree.add(ac, 5)
-# tree.add(z, 3)
-# bubu = tree.add(ac, 124)
-# tree.add(c, 11)
-# tree.add(tree.root, 11)
-# tree.add(tree.root, 1)
-# tree.add(b, 124)
-# tree.add(tree.root, 8)
-# tree.add(b,10)
-# print(tree.str_tree())
-
-# node = tree.root
-# while not node.is_leaf():
-#     print(node.data)
-#     node = tree.get_random_next_data(node)
+        return Tree.get_next_option_index(node, selected_leaf)

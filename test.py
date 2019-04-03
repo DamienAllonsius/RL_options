@@ -1,148 +1,155 @@
-import sys, unittest
-sys.path.append('gridenvs')
-from gridenvs.utils import Point, Direction
-from agent.q import Q
-from agent.option import Option, OptionExplore
-from agent.agent import AgentOption
-from variables import *
-"""
+import unittest
+from planning.tree import Node
+from planning.tree import Tree
+import numpy as np
+
+
+class NodeTest(unittest.TestCase):
+    def make_data(self):
+        """
+        We define here some nodes to test their functions
+        """
+        self.node_0 = Node(data=0)
+        self.node_1 = Node(data=1)
+        self.node_2 = Node(data=2)
+        self.node_3 = Node(data=3)
+        self.node_4 = Node(data=4)
+        self.node_5 = Node(data=5)
+        self.node_6 = Node(data=6)
+        self.node_7 = Node(data=7)
+
+        self.set_parents_children()
+        self.set_values()
+
+    def set_parents_children(self):
+        """
+        Defines a Tree with the nodes
+        :return:
+        """
+        self.node_0.children = [self.node_1, self.node_2, self.node_3]
+        self.node_1.children = [self.node_4, self.node_5]
+        self.node_3.children = [self.node_6]
+        self.node_4.children = [self.node_7]
+
+    def set_values(self):
+        self.node_0.value = 0
+        self.node_1.value = 1
+        self.node_2.value = 10
+        self.node_3.value = 11
+        self.node_4.value = 100
+        self.node_5.value = 101
+        self.node_6.value = 111
+        self.node_7.value = 1000
+
+    def test_get_values(self):
+        self.make_data()
+        values_0 = self.node_0.get_values()
+        values_1 = self.node_1.get_values()
+        values_2 = self.node_2.get_values()
+        values_3 = self.node_3.get_values()
+        values_7 = self.node_7.get_values()
+
+        self.assertEqual(values_0, [1, 10, 11])
+        self.assertEqual(values_1, [100, 101])
+        self.assertEqual(values_2, [])
+        self.assertEqual(values_3, [111])
+        self.assertEqual(values_7, [])
+
+
+class TreeTest(unittest.TestCase):
+
+    def make_data(self):
+        """
+        We define here a Tree to test its functions
+        """
+        self.tree = Tree(root_data=0)
+        self.node_1 = Node(data=1)
+        self.node_2 = Node(data=2)
+        self.node_3 = Node(data=3)
+        self.node_4 = Node(data=4)
+        self.node_5 = Node(data=5)
+        self.node_6 = Node(data=6)
+        self.node_7 = Node(data=7)
+
+        self.set_parents_children()
+        self.set_values()
+
+    def set_values(self):
+        self.tree.root.value = 0
+        self.node_1.value = 1
+        self.node_2.value = 10
+        self.node_3.value = 11
+        self.node_4.value = 100
+        self.node_5.value = 101
+        self.node_6.value = 111
+        self.node_7.value = 1000
+
+    def set_parents_children(self):
+        """
+        Defines a Tree with the nodes
+        :return:
+        """
+        self.tree.add_tree(self.tree.root, self.node_1)
+        self.tree.add_tree(self.tree.root, self.node_2)
+        self.tree.add_tree(self.tree.root, self.node_3)
+
+        self.tree.add_tree(self.node_1, self.node_4)
+        self.tree.add_tree(self.node_1, self.node_5)
+
+        self.tree.add_tree(self.node_3, self.node_6)
+
+        self.tree.add_tree(self.node_4, self.node_7)
+
+    def test_get_probability_leaves(self):
+        self.make_data()
+        leaves_0, _ = Tree.get_probability_leaves(self.tree.root)
+        leaves_1, _ = Tree.get_probability_leaves(self.node_1)
+        leaves_3, _ = Tree.get_probability_leaves(self.node_3)
+        leaves_4, _ = Tree.get_probability_leaves(self.node_4)
+
+        with self.assertRaises(Exception):
+            leaves_2, _ = self.tree.get_probability_leaves(self.node_2)
+        with self.assertRaises(Exception):
+            leaves_5, _ = self.tree.get_probability_leaves(self.node_5)
+        with self.assertRaises(Exception):
+            leaves_7, _ = self.tree.get_probability_leaves(self.node_7)
+        with self.assertRaises(Exception):
+            leaves_6, _ = self.tree.get_probability_leaves(self.node_7)
+
+        np.testing.assert_array_equal(leaves_0, np.array([3 / 8, 2 / 8, 1 / 8, 2 / 8]))
+        np.testing.assert_array_equal(leaves_1, np.array([2 / 3, 1 / 3]))
+        np.testing.assert_array_equal(leaves_3, np.array([1]))
+        np.testing.assert_array_equal(leaves_4, np.array([1]))
+
+    def test_print_tree(self):
+        self.make_data()
+        print(self.tree.str_tree())
+
+    def test_get_next_data(self):
+        """
+        TODO
+        """
+
+    def test_get_random_next_data(self):
+        """
+        TODO
+        """
+
+
+class QTest(unittest.TestCase):
+    def test_get_number_options(self):
+        """
+        TODO
+        """
+
+
 class OptionTest(unittest.TestCase):
-    def test_eq_option_explore(self):
-        opt_1 = OptionExplore(Point(0,0))
-        opt_2 = OptionExplore(Point(0,0))
-        self.assertEqual(opt_1, opt_2)
-
-    def test_act_option_explore(self):
-        opt_1 = OptionExplore(Point(0,0))
-        action = opt_1.act()
-        self.assertTrue(action in Direction.cardinal())
-
-    def test_check_end_option_explore(self):
-        opt_1 = OptionExplore(Point(0,0))
-        self.assertFalse(opt_1.check_end_option(Point(0,0)))
-        self.assertTrue(opt_1.check_end_option(Point(10,0)))
-
-    def test_add_primitive_actions(self):
-        option_1 = Option(position = Point(0,0), initial_state = Point(0,0), terminal_state = Point(1,1))
-        option_1.add_primitive_actions(Point(0,0))
-        cardinal = Direction.cardinal()
-        self.assertEqual(option_1.q.q_dict, {Point(0,0) : {cardinal[0] : 0, cardinal[1] : 0, cardinal[2] : 0, cardinal[3] : 0}})
-
-        with  self.assertRaises(Exception):
-            option_1.add_primitive_actions(Point(1,1))
-
-"""                                    
-class QTests(unittest.TestCase):
-    def test_add_state(self):
-        q = Q(Point(0,0))
-        q.add_state(Point(0,1))
-        self.assertEqual(q.q_dict, {Point(0,0) : {}, Point(0,1) : {}})
-        q.add_state(Point(0,0))
-        self.assertEqual(q.q_dict, {Point(0,0) : {}, Point(0,1) : {}})
-        
-    def test_add_action_to_state(self):
-        q = Q(Point(0,0))
-        q.add_action_to_state(Point(0,0), Point(2,2))
-        self.assertEqual(q.q_dict, {Point(0,0) : {Point(2,2) : 0}})
-
-        with  self.assertRaises(Exception):
-            q.add_action_to_state(Point(0,3), Point(0,1))
-            
-        q.add_action_to_state(Point(0,0), Point(4,4))
-        self.assertEqual(q.q_dict, {Point(0,0) : {Point(2,2) : 0, Point(4,4) : 0}})
-
-        q.add_action_to_state(Point(0,0), Point(4,4))
-        self.assertEqual(q.q_dict, {Point(0,0) : {Point(2,2) : 0, Point(4,4) : 0}})
-    
-    def test_add_action_to_state_with_option(self):
-        position_1 = Point(0,0)
-        zone_1 = Point(0,0)
-        terminal_zone_1 = Point(1,0)
-        terminal_zone_2 = Point(5,5)        
-        option_1 = Option(initial_state = zone_1, terminal_state = terminal_zone_1, position = position_1, grid_size_option = Point(1,1), play = False)
-        option_2 = Option(initial_state = zone_1, terminal_state = terminal_zone_1, position = position_1, grid_size_option = Point(1,1), play = False)
-        option_3 = Option(initial_state = zone_1, terminal_state = terminal_zone_2, position = position_1, grid_size_option = Point(1,1), play = False)
-        self.assertTrue(option_1 == option_2)
-        self.assertFalse(option_1 == option_3)
-
-        q = Q(zone_1)
-        q.add_state(zone_1)
-        q.add_action_to_state(zone_1, option_1)
-        q.add_action_to_state(zone_1, option_2)
-        q.add_action_to_state(zone_1, option_3)
-        self.assertEqual(q.q_dict, {zone_1 : {option_1 : 0, option_3 : 0}})
-            
-    def test_find_best_action(self):
-        q = Q(Point(0,0))
-        zone_1 = Point(0,0)
-        terminal_zone_1 = Point(1,0)
-        option =  OptionExplore(initial_state = zone_1)
-        
-        q.add_action_to_state(Point(0,0), Point(0,0))
-        q.q_dict[Point(0,0)][Point(0,0)] = 2
-        
-        q.add_action_to_state(Point(0,0), Point(0,1))
-        q.q_dict[Point(0,0)][Point(0,1)] = 4
-        
-        q.add_action_to_state(Point(0,0), option)
-        q.q_dict[Point(0,0)][option] = 77
-        
-        q.add_action_to_state(Point(0,0), Point(0,3))
-        q.q_dict[Point(0,0)][Point(0,3)] = 3
-
-        q.add_state(Point(10,10))
-
-        best_reward, best_action = q.find_best_action(Point(0,0))
-        self.assertEqual(best_reward, 77)
-        self.assertEqual(best_action, option)
-        with self.assertRaises(Exception):
-            q.find_best_action(Point(10,10))  
-        with self.assertRaises(Exception):
-            q.find_best_action(Point(4,4))
-        
-    def test_find_best_action_with_options(self):
-        q = Q(Point(0,0))
-        agent = AgentOption(Point(0,0),Point(0,0), grid_size_option = Point(1,1), play = False)
-        q.add_action_to_state(Point(0,0), agent.explore_option)
-        q.q_dict[Point(0,0)][agent.explore_option] = 2
-
-        best_reward, best_action = q.find_best_action(Point(0,0))
-        self.assertEqual(best_reward, 2)
-        self.assertEqual(best_action, agent.explore_option)
-
-        opt = Option(position = Point(0,0), initial_state = Point(0,1), terminal_state = Point(2,2), grid_size_option = Point(1,1), play = False)
-        q.add_state(Point(0,1))
-        q.add_action_to_state(Point(0,1), opt)
-        self.assertEqual(0, q.q_dict[Point(0,1)][opt])
+    pass
 
 
-    def test_is_actions(self):
-        q = Q(Point(0,0))
-        q.add_action_to_state(Point(0,0), Point(2,2))
-        q.add_state(Point(1,1))
-        self.assertTrue(q.is_actions(Point(0,0)))
-        self.assertFalse(q.is_actions(Point(1,1)))
-    
-    def test_update_q_dict(self):
+class AgentTest(unittest.TestCase):
+    pass
 
-        state = Point(0,0) 
-        new_state = Point(0,1)
-        action = Option(position = state, initial_state = state, terminal_state = new_state, grid_size_option = Point(1,1), play = False)
-        reward = 12
-        q = Q(state)
 
-        q.update_q_dict(state, new_state, action, reward)
-        self.assertEqual(q.q_dict, {state : {action : LEARNING_RATE * reward}, new_state : {}})
-
-        q.add_action_to_state(new_state, new_state)
-        state_action_value = 100
-        q.q_dict[new_state][new_state] = state_action_value
-        q.update_q_dict(state, new_state, action, reward)
-
-        q_predict =  {state : {action : (1-LEARNING_RATE) * LEARNING_RATE * reward + LEARNING_RATE * (reward + state_action_value)}, new_state : {new_state : state_action_value}}
-        self.assertEqual(q.q_dict, q_predict)
-        
 if __name__ == '__main__':
     unittest.main()
-#    q_tests = QTests()
-#    q_tests.test_add_state()
