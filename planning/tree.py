@@ -1,7 +1,7 @@
 from collections import defaultdict
 from planning.utils import *
 import numpy as np
-from variables import *
+import variables
 
 
 class Node(object):
@@ -31,33 +31,40 @@ class Node(object):
         s += "node and children:" + "\n"
         s += self.str_node(self)
         for k in range(len(self.children)):
-            s += "action: " + str(k) + " value: " + str(self.children[k]) + "\n"
+            s += "action: " + str(k) + \
+                 " value: " + str(self.children[k]) \
+                 + "\n"
 
         return s
 
-    def str_node(self, current_node=None, next_node=None, str_data_fn=lambda node: str(node.data)):
+    def str_node(self,
+                 current_node=None,
+                 next_node=None,
+                 str_data_fn=lambda node: str(node.data)):
+
         if self.data == current_node:
-            s = red
+            s = variables.red
 
         else:
-            s = green
+            s = variables.green
 
         s += str_data_fn(self) + '\n'
         for node in self.depth_first():
             d = node.depth - self.depth
             if d > 0:
-                tex = "".join([tab] * d + ["|", str_data_fn(node), '\n'])
+                tex = "".join([variables.tab] * d +
+                              ["|", str_data_fn(node), '\n'])
                 if node.data == current_node:
-                    s += red
+                    s += variables.red
 
                 elif node.data == next_node:
-                    s += yellow
+                    s += variables.yellow
 
                 else:
-                    s += green
+                    s += variables.green
 
-                s += tex + green
-        return s + white
+                s += tex + variables.green
+        return s + variables.white
 
     def depth_first(self):
         yield self
@@ -104,7 +111,8 @@ class Node(object):
 
 class Tree:
     """
-    Although a Node is a tree by itself, this class provides more iterators and quick access to the different depths of
+    Although a Node is a tree by itself, this class provides more iterators and
+    quick access to the different depths of
     the tree, and keeps track of the root node
     """
 
@@ -120,9 +128,11 @@ class Tree:
     def str_tree(self,
                  current_node=None,
                  next_node=None,
-                 str_data_fn=lambda node: str(node.data) + ". depth : " + str(node.depth)):
+                 str_data_fn=lambda node: str(node.data) +
+                 ". depth : " + str(node.depth)):
 
-        return self.root.str_node(current_node, next_node, str_data_fn) + " max depth = " + str(self.max_depth)
+        return self.root.str_node(current_node, next_node, str_data_fn) + \
+               " max depth = " + str(self.max_depth)
 
     def new_root(self, node):
         node.make_root()
@@ -132,7 +142,8 @@ class Tree:
         self.depth = defaultdict(list)
 
         for n in self.root.breadth_first():
-            self._add(n)  # iterate through children nodes and add them to the depth list
+            # iterate through children nodes and add them to the depth list
+            self._add(n)
 
     def _add(self, node):
         self.depth[node.depth].append(node)
@@ -158,6 +169,8 @@ class Tree:
 
     def add(self, parent_node, data):
         """
+        *Deprecated*
+
         Look at the node in the tree.
         If it does not exist, create it.
         If it exists above, do nothing.

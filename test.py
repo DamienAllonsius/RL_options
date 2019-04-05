@@ -128,12 +128,22 @@ class TreeTest(unittest.TestCase):
     def test_get_next_data(self):
         """
         TODO
+        :return:
         """
+        pass
 
     def test_get_random_next_data(self):
         """
         TODO
         """
+        pass
+
+    def test_number_visits(self):
+        """
+        TODO
+        :return:
+        """
+        pass
 
 
 class QTest(unittest.TestCase):

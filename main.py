@@ -5,7 +5,7 @@ import time
 import gym
 from tqdm import tqdm
 from agent.agent import AgentOption
-from variables import *
+import variables
 from gridenvs.wrappers.obs import ObservationZoneWrapper
 from multiprocessing import Pool
 sys.path.append('gridenvs')
@@ -14,13 +14,10 @@ sys.path.append('gridenvs')
 class Experiment(object):
     """
     This class makes experiments between an agent and its environment
-    TODO : agent.reset()
     """
     
     def __init__(self, experiment_name):
-        self.experiment_data = return_data(experiment_name)
-        assert self.experiment_data is not None
-
+        self.experiment_data = variables.return_data(experiment_name)
         self.seed = None
 
         # environment variables
@@ -35,7 +32,7 @@ class Experiment(object):
         self.agent = self.get_agent(self.env.reset())
 
         self.ATARI_state = self.save_state(self.agent.initial_state)
-        self.result_file_name = self.write_setting()
+        self.dir_name = self.get_dir_name()
 
     def get_agent(self, initial_state):
         if self.experiment_data["AGENT"] == "AgentOption":
@@ -47,11 +44,13 @@ class Experiment(object):
                                experiment_data=self.experiment_data)
 
         else:
-            raise NotImplementedError()
+            raise Exception(str(self.experiment_data["AGENT"]) +
+                            " is not implemented")
 
     def get_environment(self, wrapper_obs=True):
         if wrapper_obs:
-            env = gym.make(self.experiment_data["ENV_NAME"]).env  # to remove wrapper TimeLimit
+            # to remove wrapper TimeLimit
+            env = gym.make(self.experiment_data["ENV_NAME"]).env
             env = ObservationZoneWrapper(env,
                                          zone_size_option_x=self.experiment_data["ZONE_SIZE_OPTION_X"],
                                          zone_size_option_y=self.experiment_data["ZONE_SIZE_OPTION_Y"],
@@ -93,37 +92,42 @@ class Experiment(object):
             self.agent.reset()
             self.env.reset()
 
-    def write_reward(self, t):
-        f = open(self.result_file_name, "a")
+    def get_dir_name(self):
+        dir_name = "results/" + self.experiment_data["NAME"]
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+
+        dir_name += "/" + \
+                    time.asctime(time.localtime(time.time())).replace(" ", "_")
+        os.mkdir(dir_name)
+
+        return dir_name
+
+    def write_reward(self, t, file_name):
+        f = open(file_name, "a")
         f.write("t = " + str(t) + " reward = " + str(self.total_reward) + "\n")
         f.close()
 
     def write_setting(self):
-        dir_name = "results/" + self.experiment_data["NAME"]
-        if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
-        
-        dir_name += "/" + time.asctime(time.localtime(time.time())).replace(" ","_")
-        os.mkdir(dir_name)
-
-        f = open(dir_name + "/" + "setting", "a")
+        f = open(self.dir_name + "/" + "setting", "a")
         for key in self.experiment_data:
             f.write(key + " : " + str(self.experiment_data[key]) + "\n")
         f.write("\n" * 3)
         f.close()
 
-        return dir_name
-
-    def write_message(self, message):
-        f = open(self.result_file_name, "a")
+    @staticmethod
+    def write_message(message, file_name):
+        f = open(file_name, "a")
         f.write(message)
         f.close()
 
     def learn(self):
-        self.result_file_name = self.result_file_name + "/" + "seed_" + str(self.seed)
+        self.write_setting()
+        file_name = self.dir_name + "/" + "seed_" + str(self.seed)
         full_lives = {'ale.lives': 6}
         
-        for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):                
+        for t in tqdm(range(1,
+                            self.experiment_data["ITERATION_LEARNING"] + 1)):
 
             self.restore_state()
             done = False
@@ -140,7 +144,7 @@ class Experiment(object):
                     self.env.unwrapped.viewer.window.dispatch_events()
 
                 if option is None:
-                    option = self.agent.choose_option(t)
+                    option = self.agent.choose_option()
 
                 action = option.act()
                 obs, reward, done, info = self.env.step(action)
@@ -148,17 +152,17 @@ class Experiment(object):
 
                 if reward > 0:
                     self.total_reward += reward
-                    self.write_reward(t)
+                    self.write_reward(t, file_name)
                     self.ATARI_state = self.save_state(obs)
                     break
                 
                 if end_option:
+                    self.agent.update_agent(obs, option, info['ale.lives'])
                     option = None
-                    self.agent.update_agent(obs, option, action)
 
                 done = (info != full_lives)                
                 
-        experiment.write_message("Experiment complete.")
+        Experiment.write_message("Experiment complete.", file_name)
 
     def key_press(self, key, mod):
         if key == ord("d"):
@@ -179,7 +183,7 @@ class Experiment(object):
 
 if __name__ == '__main__':
     
-    experiment = Experiment("First_good_results")
+    experiment = Experiment("refactored")
     parallel = False
 
     if parallel:
