@@ -1,5 +1,6 @@
 import numpy as np
 from planning.tree import Node, Tree
+from abc import ABCMeta, abstractmethod
 
 
 class QAbstract(object):
@@ -9,9 +10,14 @@ class QAbstract(object):
     Each element of q contains a structure (list, dictionary etc.) which maps
     the actions to their values.
     """
+
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
     def add_state(self, *args):
         raise NotImplementedError()
 
+    @abstractmethod
     def find_best_action(self, state):
         """
         :param state:
@@ -19,9 +25,11 @@ class QAbstract(object):
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def get_random_action(self, state):
         raise NotImplementedError()
 
+    @abstractmethod
     def update_q_value(self, *args):
         """
         Performs the Q learning update :
@@ -63,6 +71,19 @@ class QTree(QAbstract):
 
         raise Exception("state does not exist in the tree")
 
+    @staticmethod
+    def get_child_node_from_state(parent_node, state):
+        """
+        :param parent_node: the node from which we start
+        :param state: the node data we are looking for
+        :return: a child of parent_node with child.data == state
+        """
+        for child in parent_node.children:
+            if child.data == state:
+                return child
+
+        raise Exception("None of my children have this state")
+
     def get_number_actions(self, state):
         node = self.get_node_from_state(state)
         return len(node.children)
@@ -75,6 +96,7 @@ class QTree(QAbstract):
          :return:
          """
         node = self.get_node_from_state(previous_state)
+        node.number_visits += 1
         if next_state not in [child.data for child in node.children]:  # add only if the state does not already exist
             self.tree.add_tree(node, Node(next_state))
 
@@ -105,7 +127,7 @@ class QTree(QAbstract):
         :return: best_option_index, terminal_state
         """
         node = self.get_node_from_state(state)
-        values = QTree.get_values(node)
+        values = node.get_values()
 
         # In case where there is no best solution: ask the Tree
         if all(val == values[0] for val in values):
@@ -124,21 +146,18 @@ class QTree(QAbstract):
                                          += learning_rate * [reward + max_{actions} Q_(new_position, action)]
         """
         node = self.get_node_from_state(state)
-        node_activated = node[node.index(action)]  # node which value attribute is Q_t(current_position, action)
+        node_activated = QTree.get_child_node_from_state(node, action)  # node which value attribute is
+        # Q_t(current_position, action)
         new_node = self.get_node_from_state(new_state)  # maybe different than node_activated
 
         if new_node.children:  # there are children, take the maximum value
-            best_value = max(QTree.get_values(new_node))
+            best_value = max(new_node.get_values())
 
         else:  # there are no children -> best_value is 0
             best_value = 0
 
         node_activated.value *= (1 - learning_rate)
         node_activated.value += learning_rate * (reward + best_value)
-
-    @staticmethod
-    def get_values(node):
-        return [child.value for child in node.children]
 
     # def no_return_update(self, state, new_state):
     #     """
@@ -181,7 +200,8 @@ class QArray(QAbstract):
         message = ""
         for idx in range(len(self.state_list)):
             message += str(self.state_list[idx]) + \
-                       " actions-values : " + str(self.values[idx])
+                       " actions-values : " + str(self.values[idx]) + \
+                       "\n"
 
         return message
 
@@ -202,7 +222,7 @@ class QArray(QAbstract):
     def get_random_action(self, state):
         return np.random.randint(self.number_actions)
 
-    def update_q_value(self, state, action, reward, new_state, learning_rate, end_option):
+    def update_q_value(self, state, action, reward, new_state, end_option, learning_rate):
         new_state_idx = self.state_list.index(new_state)
         state_idx = self.state_list.index(state)
         if end_option:

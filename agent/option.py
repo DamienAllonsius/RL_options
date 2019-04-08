@@ -1,5 +1,6 @@
 from agent.q import QArray
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 
 class OptionAbstract(object):
@@ -7,6 +8,8 @@ class OptionAbstract(object):
     Abstract option class that barely only needs an update function
     and an act function
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, number_actions, play=False):
         self.initial_state = None
         self.current_state = None
@@ -20,9 +23,11 @@ class OptionAbstract(object):
     def check_end_option(self, new_state):
         return new_state != self.initial_state
 
+    @abstractmethod
     def update_option(self, reward, new_position, new_state, action):
         raise NotImplementedError()
 
+    @abstractmethod
     def act(self):
         raise NotImplementedError()
 
@@ -67,10 +72,10 @@ class Option(OptionAbstract):
               terminal_state):  # blurred image
 
         if self.q is None:
-            QArray(current_state, self.number_actions)
+            self.q = QArray(current_state, self.number_actions)
 
         super().reset(initial_state, current_state, terminal_state)
-        self.q.add_state(initial_state)
+        self.q.add_state(current_state)
 
     def update_option(self, reward, new_state, action, remaining_lives):
         if self.lives is None:
@@ -92,7 +97,7 @@ class Option(OptionAbstract):
 
             # Update the states/actions of Q function
             # and compute the corresponding value
-            self.q.add_state(self.current_state)
+            self.q.add_state(new_state["state"])
             self.q.update_q_value(self.current_state,
                                   action,
                                   total_reward,

@@ -65,7 +65,7 @@ class AgentOption(object):
 
                 return self.explore_option
 
-            else:  # in this case, play an option from the list self.option_set.
+            else:  # in this case, play an option from the list self.option_set
                 best_option_index, terminal_state = self.q.find_best_action(self.current_state["blurred_state"])
                 best_option = self.option_list[best_option_index]
                 best_option.reset(self.current_state["blurred_state"], self.current_state["state"], terminal_state)
@@ -112,5 +112,3 @@ class AgentOption(object):
                                   total_reward,
                                   new_state["blurred_state"],
                                   self.experiment_data["LEARNING_RATE"])
-
-        print("number of options: " + str(len(self)))

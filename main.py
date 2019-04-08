@@ -126,8 +126,7 @@ class Experiment(object):
         file_name = self.dir_name + "/" + "seed_" + str(self.seed)
         full_lives = {'ale.lives': 6}
         
-        for t in tqdm(range(1,
-                            self.experiment_data["ITERATION_LEARNING"] + 1)):
+        for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):
 
             self.restore_state()
             done = False
