@@ -1,13 +1,25 @@
-import numpy as np
+"""RL_options version 1
+RL_options designed for solving Montezuma's Revenge (ATARI)
+
+Usage:
+    main.py [options]
+
+Options:
+    -h                          Display this help.
+    --test                      Run the tests and exit.
+"""
+
 import os
 import sys
 import time
 import gym
+import numpy as np
 from tqdm import tqdm
 from agent.agent import AgentOption
 import variables
 from gridenvs.wrappers.obs import ObservationZoneWrapper
 from multiprocessing import Pool
+from docopt import docopt
 sys.path.append('gridenvs')
 
 
@@ -21,9 +33,9 @@ class Experiment(object):
         self.seed = None
 
         # environment variables
-        self.display_learning = False
-        self.blurred_render = False
-        self.gray_scale_render = False
+        self.display_learning = True
+        self.blurred_render = True
+        self.gray_scale_render = True
         self.agent_view = True
         self.env = self.get_environment()
 
@@ -132,15 +144,9 @@ class Experiment(object):
             done = False
             option = None
 
+            self.show_render()
+
             while not done:
-
-                if self.display_learning:
-                    self.env.render(blurred_render=self.blurred_render,
-                                    gray_scale_render=self.gray_scale_render,
-                                    agent_render=self.agent_view)
-
-                else:
-                    self.env.unwrapped.viewer.window.dispatch_events()
 
                 if option is None:
                     option = self.agent.choose_option()
@@ -156,12 +162,28 @@ class Experiment(object):
                     break
                 
                 if end_option:
+                    self.show_render()
                     self.agent.update_agent(obs, option, info['ale.lives'])
+                    print("number of options: " + str(len(self.agent.option_list)))
                     option = None
 
-                done = (info != full_lives)                
+                done = (info != full_lives)
+
                 
         Experiment.write_message("Experiment complete.", file_name)
+
+    def distribute_seed_and_learn(self, seed=0):
+        self.set_seed(seed)
+        self.learn()
+
+    def show_render(self):
+        if self.display_learning:
+            self.env.render(blurred_render=self.blurred_render,
+                            gray_scale_render=self.gray_scale_render,
+                            agent_render=self.agent_view)
+
+        else:
+            self.env.unwrapped.viewer.window.dispatch_events()
 
     def key_press(self, key, mod):
         if key == ord("d"):
@@ -181,21 +203,24 @@ class Experiment(object):
 
 
 if __name__ == '__main__':
-    
-    experiment = Experiment("refactored")
-    parallel = False
-
-    if parallel:
-        number_cores = 6
-
-        def distribute_seed_and_learn(seed):
-            experiment.set_seed(seed)
-            experiment.learn()
-
-        p = Pool()
-        p.map(distribute_seed_and_learn, range(number_cores))
-        p.close()
-        p.join()
+    args = docopt(__doc__)
+    if args['--test']:
+        from tests.test_Node import *
+        from tests.test_Tree import *
+        import unittest
+        del sys.argv[1:]
+        unittest.main()
 
     else:
-        experiment.learn()
+        experiment = Experiment("refactored")
+        parallel = False
+
+        if parallel:
+            number_cores = 6
+            p = Pool()
+            p.map(experiment.distribute_seed_and_learn, range(number_cores))
+            p.close()
+            p.join()
+
+        else:
+            experiment.distribute_seed_and_learn()

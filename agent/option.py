@@ -115,11 +115,11 @@ class Option(OptionAbstract):
         if end_option:
             if new_state_blurred == self.terminal_state:
                 total_reward += self.experiment_data["REWARD_END_OPTION"]
-                # print("option terminated correctly")
+                print("option terminated correctly")
 
             else:
                 total_reward += self.experiment_data["PENALTY_END_OPTION"]
-                # print("missed")
+                print("missed")
 
         if self.lives > remaining_lives:
             total_reward += self.experiment_data["PENALTY_LOST_LIFE_FOR_OPTIONS"]

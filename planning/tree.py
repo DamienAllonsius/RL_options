@@ -143,29 +143,17 @@ class Tree:
 
         for n in self.root.breadth_first():
             # iterate through children nodes and add them to the depth list
-            self._add(n)
+            self.update(n)
 
-    def _add(self, node):
+    def update(self, node):
+        """
+        updates the depth, the nodes list and max_depth
+        :param node:
+        """
         self.depth[node.depth].append(node)
         self.nodes.append(node)
         if node.depth > self.max_depth:
             self.max_depth = node.depth
-
-    def add_tree(self, parent_node, node):
-        """
-        add the tree under the parent_node with the right depths
-        """
-        if not node.is_root():
-            node.parent.children.remove(node)  # just to be consistent
-
-        node.parent = parent_node
-        old_depth = node.depth
-        parent_node.children.append(node)
-        for child in node.depth_first():
-            child.depth = child.depth - old_depth + (parent_node.depth + 1)
-
-        self.new_root(self.root)  # compute the new depths
-        return node
 
     def add(self, parent_node, data):
         """
@@ -189,8 +177,24 @@ class Tree:
                     return node
 
         child = parent_node.add(data)  # node does not exist
-        self._add(child)
+        self.update(child)
         return child
+
+    def add_tree(self, parent_node, node):
+        """
+        add the tree under the parent_node with the right depths
+        """
+        if not node.is_root():
+            node.parent.children.remove(node)  # just to be consistent
+
+        node.parent = parent_node
+        old_depth = node.depth
+        parent_node.children.append(node)
+        for child in node.depth_first():
+            child.depth = child.depth - old_depth + (parent_node.depth + 1)
+
+        self.new_root(self.root)  # compute the new depths
+        return node
 
     @staticmethod
     def get_leaves(node):
