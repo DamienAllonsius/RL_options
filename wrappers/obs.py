@@ -112,9 +112,11 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
         img_agent = ObservationZoneWrapper.make_gray_scale(img_agent, self.thresh_binary_agent)
 
         img_option_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_option)
-        img_agent_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_agent)    
-        
-        return {"state": hash(img_option_tuple), "blurred_state": hash(img_agent_tuple)}
+        img_agent_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img_agent)
+
+        observation_norm = observation / 255
+
+        return {"state": observation_norm, "blurred_state": hash(img_agent_tuple)} #hash(img_option_tuple)
 
     @staticmethod
     def make_gray_scale(image, threshold):
