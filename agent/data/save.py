@@ -1,6 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-from variables import *
+import variables
 
 class SaveData(object):
 
