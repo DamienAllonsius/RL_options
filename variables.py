@@ -41,7 +41,7 @@ def return_data(name):
                 "PENALTY_OPTION_ACTION": -1,
 
                 "PENALTY_LOST_LIFE_FOR_OPTIONS": - 1000,
-                "PENALTY_LOST_LIFE_FOR_AGENT": 0,
+                "PENALTY_LOST_LIFE_FOR_AGENT": -100,
                 "PENALTY_AGENT_ACTION": 0,  # should stay 0 for the moment
 
                 "SAVE_STATE": False}

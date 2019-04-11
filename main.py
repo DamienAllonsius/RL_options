@@ -13,6 +13,7 @@ import os
 import sys
 import time
 import gym
+import subprocess
 import numpy as np
 from tqdm import tqdm
 from agent.agent import AgentOption
@@ -160,6 +161,7 @@ class Experiment(object):
                     self.total_reward += reward
                     self.write_reward(t, file_name)
                     self.ATARI_state = self.save_state(obs)
+                    subprocess.Popen(['notify-send', "got a positive reward"])
                     break
                 
                 if end_option:
