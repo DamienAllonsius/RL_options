@@ -52,12 +52,17 @@ class QTree(QAbstract):
     """
     def __init__(self, state):
         self.tree = Tree(state)
+        self.current_node = self.tree.root
+        self.number_options = 0
 
     def __len__(self):
         return len(self.tree.nodes)
 
     def __str__(self):
         return self.tree.str_tree()
+
+    def reset(self):
+        self.current_node = self.tree.root
 
     def get_node_from_state(self, state):
         """
@@ -69,36 +74,37 @@ class QTree(QAbstract):
             if node.data == state:
                 return node
 
-        raise Exception("state does not exist in the tree")
+        raise ValueError("state does not exist in the tree")
 
-    @staticmethod
-    def get_child_node_from_state(parent_node, state):
+    def get_child_node_from_current_state(self, state):
         """
-        :param parent_node: the node from which we start
         :param state: the node data we are looking for
-        :return: a child of parent_node with child.data == state
+        :return: a child of self.current_node with child.data == state
         """
-        for child in parent_node.children:
+        for child in self.current_node.children:
             if child.data == state:
                 return child
 
-        raise Exception("None of my children have this state")
+        raise ValueError("None of my children have this state")
 
-    def get_number_actions(self, state):
-        node = self.get_node_from_state(state)
-        return len(node.children)
-
-    def add_state(self, previous_state, next_state):
+    def add_state(self, next_state):
         """
-         Add a state at a certain position. But careful not to add twice the same state at the same position.
+         Add a state at the current node. But be careful, do not to add twice the same state at the same position.
          :param next_state: the state you want to add
-         :param previous_state: the state *before* next_state
          :return:
          """
-        node = self.get_node_from_state(previous_state)
-        node.number_visits += 1
-        if next_state not in [child.data for child in node.children]:  # add only if the state does not already exist
-            self.tree.add_tree(node, Node(next_state))
+        # update the number of visits of the current node
+        self.current_node.number_visits += 1
+        try:
+            self.current_node = self.get_node_from_state(next_state)
+
+        except ValueError: # add next_state only if it does not already exist
+            next_current_node = self.tree.add_tree(self.current_node, Node(next_state))
+            # and update the number of options
+            if len(self.current_node.children) > self.number_options:
+                self.number_options += 1
+
+            self.current_node = next_current_node
 
     def get_random_action(self, state):
         """
@@ -111,49 +117,46 @@ class QTree(QAbstract):
         """
         pass
 
-    def get_number_visits(self, state):
-        return self.get_node_from_state(state).number_visits
+    def get_number_visits(self):
+        return self.current_node.number_visits
 
-    def get_number_options(self):
-        """
-        This function is used only for the following test:
-        Must be equal to len(agent.option_list)
-        """
-        nb_children = [len(node.children) for node in self.tree.root.depth_first()]
-        return max(nb_children)
-
-    def find_best_action(self, state):
+    def find_best_action(self, state=None):
         """
         :return: best_option_index, terminal_state
         """
-        node = self.get_node_from_state(state)
-        values = node.get_values()
+        values = self.current_node.get_values()
+        if not values:
+            return 0, None
 
         # In case where there is no best solution: ask the Tree
         if all(val == values[0] for val in values):
-            best_option_index = Tree.get_random_next_option_index(node)
+            best_option_index = Tree.get_random_next_option_index(self.current_node)
 
         else:
             best_reward = max(values)
             best_option_index = values.index(best_reward)
 
-        return best_option_index, node.children[best_option_index].data
+        return best_option_index, self.current_node.children[best_option_index].data
 
-    def update_q_value(self, state, action, reward, new_state, learning_rate):
+    def update_q_value(self, action, reward, new_state, learning_rate):
         """
         Performs the Q learning update :
         Q_{t+1}(current_position, action) = (1- learning_rate) * Q_t(current_position, action)
                                          += learning_rate * [reward + max_{actions} Q_(new_position, action)]
+
         """
-        node = self.get_node_from_state(state)
-        node_activated = QTree.get_child_node_from_state(node, action)  # node which value attribute is
+        node_activated = self.get_child_node_from_current_state(action)  # node which value attribute is
         # Q_t(current_position, action)
-        new_node = self.get_node_from_state(new_state)  # maybe different than node_activated
 
-        if new_node.children:  # there are children, take the maximum value
-            best_value = max(new_node.get_values())
+        try:
+            new_node = self.get_node_from_state(new_state)  # maybe different than node_activated
+            if new_node.children:  # there are children, take the maximum value
+                best_value = max(new_node.get_values())
 
-        else:  # there are no children -> best_value is 0
+            else:  # there are no children -> best_value is 0
+                best_value = 0
+
+        except ValueError:  # this new_state does not exist for the moment
             best_value = 0
 
         node_activated.value *= (1 - learning_rate)

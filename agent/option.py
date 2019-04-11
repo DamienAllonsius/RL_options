@@ -166,3 +166,6 @@ class OptionExplore(OptionAbstract):
         self.reward_for_agent += reward
         self.lives = remaining_lives
         return self.check_end_option(new_state["blurred_state"])
+
+    def check_end_option(self, new_state):
+        return new_state != self.initial_state

@@ -149,6 +149,7 @@ class Experiment(object):
             while not done:
 
                 if option is None:
+                    self.show_render()
                     option = self.agent.choose_option()
 
                 action = option.act()
@@ -169,7 +170,6 @@ class Experiment(object):
 
                 done = (info != full_lives)
 
-                
         Experiment.write_message("Experiment complete.", file_name)
 
     def distribute_seed_and_learn(self, seed=0):

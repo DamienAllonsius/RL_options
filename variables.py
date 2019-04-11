@@ -19,7 +19,7 @@ def return_data(name):
 
                 "PROBABILITY_EXPLORE_FOR_AGENTOPTION": 0.0,  # useless with OptionExploreQ
                 "PROBABILITY_EXPLORE_IN_OPTION": 0.1,
-                "BUDGET_EXPLORATION": 10,
+                "BUDGET_EXPLORATION": 20,
 
                 # Zones setting
                 "NUMBER_ZONES_MONTEZUMA_X": (2 ** 5) * 5,
@@ -31,7 +31,7 @@ def return_data(name):
 
                 "NUMBER_ZONES_AGENT_X": 2 ** 3,
                 "NUMBER_ZONES_AGENT_Y": 7,
-                "THRESH_BINARY_AGENT": 40,
+                "THRESH_BINARY_AGENT": 30,
 
                 "BLURRED": True,
                 "GRAY_SCALE": True,

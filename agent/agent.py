@@ -6,7 +6,7 @@ class AgentOption(object):
 
     def __init__(self,
                  initial_state,  # blurred observation
-                 current_state,  # untransformed observation (High resolution image, for option)
+                 current_state,  # {"state": int, "blurred_state", int}
                  number_actions,
                  type_exploration,
                  play,
@@ -42,6 +42,7 @@ class AgentOption(object):
 
     def reset(self):
         self.current_state = self.initial_state
+        self.q.reset()
 
     def choose_option(self):
         """
@@ -49,16 +50,16 @@ class AgentOption(object):
         else flip a coin, then take the best or explore
         """
         if self.play:
-            best_option_index, terminal_state = self.q.find_best_action(self.current_state["blurred_state"])
+            best_option_index, terminal_state = self.q.find_best_action()
             best_option = self.option_list[best_option_index]
             best_option.reset(self.current_state["blurred_state"], self.current_state["state"], terminal_state)
             best_option.play = True
             return best_option
 
         else:
-            if self.q.get_number_visits(self.current_state["blurred_state"]) < \
-                    self.experiment_data["BUDGET_EXPLORATION"]:  # in this case : explore
-
+            best_option_index, terminal_state = self.q.find_best_action()
+            if self.q.get_number_visits() < self.experiment_data["BUDGET_EXPLORATION"] or \
+                    terminal_state is None:  # in this case : explore
                 self.explore_option.reset(initial_state=self.current_state["blurred_state"],
                                           current_state=None,
                                           terminal_state=None)
@@ -66,7 +67,6 @@ class AgentOption(object):
                 return self.explore_option
 
             else:  # in this case, play an option from the list self.option_set
-                best_option_index, terminal_state = self.q.find_best_action(self.current_state["blurred_state"])
                 best_option = self.option_list[best_option_index]
                 best_option.reset(self.current_state["blurred_state"], self.current_state["state"], terminal_state)
 
@@ -78,20 +78,20 @@ class AgentOption(object):
             self.current_state = new_state
 
         else:
+            # update the q value only if the option is not the explore_option
             total_reward = self.compute_total_reward(option, remaining_lives)
-            self.update_q_function(new_state,
-                                   option.terminal_state,
-                                   total_reward,
-                                   type(option).__name__ != self.type_exploration)
+            if type(option).__name__ != self.type_exploration:
+                self.q.update_q_value(option.terminal_state,
+                                      total_reward,
+                                      new_state["blurred_state"],
+                                      self.experiment_data["LEARNING_RATE"])
 
-            if self.q.get_number_actions(self.current_state["blurred_state"]) > len(self):
-                if self.q.get_number_actions(self.current_state["blurred_state"]) == len(self) + 1:
+            # add the new state to q and add a new option to agent if necessary
+            self.q.add_state(new_state["blurred_state"])
+            if self.q.number_options > len(self):
+                self.option_list.append(Option(self.number_actions, self.play, self.experiment_data))
 
-                    self.option_list.append(Option(self.number_actions, self.play, self.experiment_data))
-
-                else:
-                    raise Exception("strange number of actions !")
-
+            # update the current state
             self.current_state = new_state
 
     def compute_total_reward(self, option, remaining_lives):
@@ -102,13 +102,3 @@ class AgentOption(object):
         # can get a penalty if the agent dies (Not recommended)
 
         return total_reward
-
-    def update_q_function(self, new_state, action, total_reward, bool_update_value):
-        self.q.add_state(self.current_state["blurred_state"], new_state["blurred_state"])
-
-        if bool_update_value:
-            self.q.update_q_value(self.current_state["blurred_state"],
-                                  action,
-                                  total_reward,
-                                  new_state["blurred_state"],
-                                  self.experiment_data["LEARNING_RATE"])
