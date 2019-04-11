@@ -4,10 +4,10 @@ from gridenvs.keyboard_controller import Controls, Key
 from gridenvs.utils import Point
 import numpy as np
 import time
-from agent.option import Option, OptionExplore
+from agent.option import Option, OptionDQN, OptionExplore
 from agent.q import QDict, QArray
 from variables import *
-from data.save import SaveData
+import DQNvariables
 """
 TODO for pix. 
 """
@@ -29,10 +29,10 @@ class AgentOption():
             else:
                 raise Exception("type_exploration unknown")
 
-    def make_save_data(self, seed):
-        #TODO : monitor ?
-        self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
-        
+    # def make_save_data(self, seed):
+    #     TODO : monitor ?
+    #     self.save_data = SaveData("data/options/data_reward_" + self.__class__.__name__, seed)
+
     def reset_explore_option(self):
         self.explore_option.reward_for_agent = 0
         self.explore_option.initial_state_blurred = self.state_blurred
@@ -92,7 +92,7 @@ class AgentOption():
             self.state_blurred = new_state_blurred
             
         else:
-    #            self.last_action = action
+    #       self.last_action = action
             if option.reward_for_agent > 0:
                 print("got a posive reward!")
             total_reward = PENALTY_AGENT_ACTION + option.reward_for_agent
@@ -102,7 +102,12 @@ class AgentOption():
             
     def update_q_function_options(self, new_state, new_state_blurred, option, reward):
         if self.no_return_update(new_state): #update or not given if the reverse option already exists
-            action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
+            #action = Option(self.number_actions, self.state_blurred, new_state, new_state_blurred, self.play)
+
+            action = OptionDQN(self.number_actions, self.state_blurred, new_state, new_state_blurred,DQNvariables.state_dimension, DQNvariables.input_shape_nn,
+                               DQNvariables.MEMORY_CAPACITY,DQNvariables.EPSILON_DECAY_RATE,DQNvariables.UPDATE_TARGET_FREQ,
+                               DQNvariables.GAMMA, DQNvariables.BATCH_SIZE,DQNvariables.MIN_EPSILON, DQNvariables.tf_sess,
+                               DQNvariables.conv_shared_main_model,DQNvariables.conv_shared_target_model, self.play)
             # if the state and the action already exist, this line will do nothing
             self.q.update_q_function_action_state(self.state_blurred, new_state_blurred, action)
             print("number options " + str(len(self.q.q_function)))
@@ -132,7 +137,7 @@ class AgentOption():
         iteration_2 reward_2
         iteration_3 reward_3
         """
-        self.save_data.record_data(t, self.reward)
+        #self.save_data.record_data(t, self.reward)
 
 class KeyboardAgent(object):
     def __init__(self, env, controls={**Controls.Arrows, **Controls.KeyPad}):
@@ -174,8 +179,8 @@ class QAgent(object):
         self.position = self.encode_position(position)
         self.reward = 0
 
-    def make_save_data(self, seed):
-        self.save_data = SaveData("data/QAgent/data_reward_" + self.__class__.__name__, seed)
+    # def make_save_data(self, seed):
+    #     self.save_data = SaveData("data/QAgent/data_reward_" + self.__class__.__name__, seed)
        
     def encode_position(self, point):
         """
@@ -221,6 +226,6 @@ class QAgent(object):
         iteration_2 reward_2
         iteration_3 reward_3
         """
-        self.save_data.record_data(t, self.reward)
+        # self.save_data.record_data(t, self.reward)
         
 

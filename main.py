@@ -47,7 +47,7 @@ def act_options(env, t, initial_setting):
     running_option = False
     #start the loop
     done = False
-    display_learning = t > 780
+    display_learning = True #True #t > 780
     while not(done):
         if display_learning:
             env.render(blurred_render = False)
@@ -59,7 +59,7 @@ def act_options(env, t, initial_setting):
         # else, let the current option act
         action = option.act()
         obs, reward, done, info = env.step(action)
-        end_option = option.update_option(reward, obs[0], obs[1], action, info['ale.lives'])
+        end_option = option.update_option(reward, obs[0], obs[1], action, 1)#info['ale.lives'])
         # if the option ended then update the agent's data
         # In Montezuma : done = dead, reward when you pick a key or open a door, info : number of lifes
         if end_option:
@@ -88,7 +88,6 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
     
     np.random.seed(seed)
     agent.play = play
-    agent.make_save_data(seed)
     if play:
         iteration = 1
         env.reset()
@@ -96,8 +95,8 @@ def learn_or_play(env, agent, play, initial_setting, iteration = ITERATION_LEARN
         wait = input("PRESS ENTER TO PLAY.")
         
     for t in tqdm(range(1, iteration + 1)):
-        if t > 780:
-            toto = input()
+        #if t > 780:
+        #    toto = input()
         # reset the parameters
         env.reset()
         if type(agent).__name__ == "AgentOption":

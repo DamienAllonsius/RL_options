@@ -72,7 +72,10 @@ class ObservationZoneWrapper(gym.ObservationWrapper):
             # transform the observation in tuple
             img_tuple = tuple(tuple(tuple(color) for color in lig) for lig in img)
             observation_tuple = tuple(tuple(tuple(color) for color in lig) for lig in observation)
-            return hash(observation_tuple), hash(img_tuple)
+
+            observation_norm = observation / 255
+
+            return observation_norm, hash(img_tuple)#hash(observation_tuple), hash(img_tuple)
 
     def make_gray_scale(self, image):
         for i in range(len(image)):
