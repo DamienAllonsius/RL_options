@@ -11,8 +11,9 @@ The code is written with `Python 3.6` and uses the ATARI environment from [gym](
 You can change the shape of the gridworld in gridenvs/example/.
 
 ## Learning phase
-![result](/animations/learning_phase.gif)
 
+<img  src="/animations/learning_phase.gif" width="300" height="300" align="right" />
+                                                                    
 You can change the render of the game by selecting the window and typing: `b` (Blurred) to switch between a downsampled image and the original image, `g` (Grayscale) to activate the grayscaling, `a` (Agent) to switch between the option and the agent view, `d` (Display) to activate/deactivate the display (of course, the display activation slows down the performances).
 
 
