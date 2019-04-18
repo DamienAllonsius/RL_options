@@ -26,7 +26,7 @@ TF_SESSION = None
 state_dimension = (84, 84, 3)#(210, 160, 3)
 input_shape_nn = [None, 84, 84, 3]#[None, 210, 160, 3]
 
-tf_sess = None 
+tf_sess = None
 
 conv_shared_main_model = ConvolutionalLayersShared() #None
 conv_shared_target_model = ConvolutionalLayersShared() #None
