@@ -6,3 +6,9 @@ data
 gridenvs
 venv
 planning/rollout_iw.py
+variables_v1.py
+agent/.data/save.py
+animations/agent.gif
+animations/neat.gif
+animations/option.gif
+results/*

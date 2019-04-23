@@ -14,7 +14,7 @@ def return_data(name):
         data = {"ENV_NAME": 'MontezumaRevenge-v0',
                 "AGENT": "AgentOption",
 
-                "ITERATION_LEARNING": 20000,
+                "ITERATION_LEARNING": 10000,
                 "LEARNING_RATE": 0.1,
 
                 "PROBABILITY_EXPLORE_FOR_AGENTOPTION": 0.0,  # useless with OptionExploreQ
@@ -26,22 +26,22 @@ def return_data(name):
                 "NUMBER_ZONES_MONTEZUMA_Y": 2 * 3 * 5 * 7,
 
                 "NUMBER_ZONES_OPTION_X": (2 ** 3) * 5,
-                "NUMBER_ZONES_OPTION_Y": 3 * 5 * 7,
+                "NUMBER_ZONES_OPTION_Y": 3 * 7,
                 "THRESH_BINARY_OPTION": 0,
 
                 "NUMBER_ZONES_AGENT_X": 2 ** 3,
                 "NUMBER_ZONES_AGENT_Y": 7,
-                "THRESH_BINARY_AGENT": 30,
+                "THRESH_BINARY_AGENT": 40,
 
                 "BLURRED": True,
                 "GRAY_SCALE": True,
 
                 "REWARD_END_OPTION": 100,
                 "PENALTY_END_OPTION": - 100,
-                "PENALTY_OPTION_ACTION": -1,
+                "PENALTY_OPTION_ACTION": 0,
 
                 "PENALTY_LOST_LIFE_FOR_OPTIONS": - 1000,
-                "PENALTY_LOST_LIFE_FOR_AGENT": -100,
+                "PENALTY_LOST_LIFE_FOR_AGENT": -1000,
                 "PENALTY_AGENT_ACTION": 0,  # should stay 0 for the moment
 
                 "SAVE_STATE": False}

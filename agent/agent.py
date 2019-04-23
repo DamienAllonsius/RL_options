@@ -26,7 +26,7 @@ class AgentOption(object):
         if not play:
             if type_exploration == "OptionExplore":
                 self.explore_option = \
-                    OptionExplore(self.number_actions)
+                    OptionExplore(number_actions, experiment_data)
 
             else:
                 raise Exception("type_exploration unknown")

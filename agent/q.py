@@ -93,18 +93,19 @@ class QTree(QAbstract):
          :param next_state: the state you want to add
          :return:
          """
-        # update the number of visits of the current node
-        self.current_node.number_visits += 1
-        try:
-            self.current_node = self.get_node_from_state(next_state)
+        if self.no_return_update(next_state):  # update only if the transition does not exist in the other way round
+            # update the number of visits of the current node
+            self.current_node.number_visits += 1
+            try:
+                self.current_node = self.get_node_from_state(next_state)
 
-        except ValueError: # add next_state only if it does not already exist
-            next_current_node = self.tree.add_tree(self.current_node, Node(next_state))
-            # and update the number of options
-            if len(self.current_node.children) > self.number_options:
-                self.number_options += 1
+            except ValueError:  # add next_state only if it does not already exist
+                next_current_node = self.tree.add_tree(self.current_node, Node(next_state))
+                # and update the number of options
+                if len(self.current_node.children) > self.number_options:
+                    self.number_options += 1
 
-            self.current_node = next_current_node
+                self.current_node = next_current_node
 
     def get_random_action(self, state):
         """
@@ -162,19 +163,21 @@ class QTree(QAbstract):
         node_activated.value *= (1 - learning_rate)
         node_activated.value += learning_rate * (reward + best_value)
 
-    # def no_return_update(self, state, new_state):
-    #     """
-    #     (no return option)
-    #         does not add anything if
-    #         for action in q[option.terminal_state]:
-    #         action.terminal_state = option.initial_state
-    #     """
-    #     if self.is_state(new_state):
-    #         for node in self.get_actions(new_state):
-    #             if node.data == state:
-    #                 return False
-    #
-    #     return True
+    def no_return_update(self, new_state):
+        """
+        (no return option)
+            does not add anything if
+            for action in q[option.terminal_state]:
+            action.terminal_state = option.initial_state
+        """
+        try:
+            new_node = self.get_node_from_state(new_state)
+            for node in new_node.children:
+                if node.data == self.current_node.data:
+                    return False
+            return True
+        except ValueError:
+            return True
 
 
 class QArray(QAbstract):

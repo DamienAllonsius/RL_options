@@ -144,8 +144,9 @@ class OptionExplore(OptionAbstract):
     """
     This is a special option to explore. No q_function is needed here.
     """
-    def __init__(self, number_actions):
+    def __init__(self, number_actions, experiment_data):
         super().__init__(number_actions, play=False)
+        self.experiment_data = experiment_data
 
     def __str__(self):
         return "explore option from " + str(self.initial_state)
@@ -158,8 +159,8 @@ class OptionExplore(OptionAbstract):
         if self.lives is None:
             self.lives = remaining_lives
 
-        # if self.lives > remaining_lives:
-        #     self.reward_for_agent += PENALTY_LOST_LIFE
+        if self.lives > remaining_lives:
+            self.reward_for_agent += self.experiment_data["PENALTY_LOST_LIFE_FOR_OPTIONS"]
 
         # the option shows a sample of the possible reward
         # of the state to the agent

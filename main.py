@@ -13,12 +13,11 @@ import os
 import sys
 import time
 import gym
-import subprocess
 import numpy as np
 from tqdm import tqdm
 from agent.agent import AgentOption
 import variables
-from gridenvs.wrappers.obs import ObservationZoneWrapper
+from wrappers.obs import ObservationZoneWrapper
 from multiprocessing import Pool
 from docopt import docopt
 sys.path.append('gridenvs')
@@ -104,6 +103,7 @@ class Experiment(object):
         else:
             self.agent.reset()
             self.env.reset()
+            self.total_reward = 0
 
     def get_dir_name(self):
         dir_name = "results/" + self.experiment_data["NAME"]
@@ -137,7 +137,6 @@ class Experiment(object):
     def learn(self):
         self.write_setting()
         file_name = self.dir_name + "/" + "seed_" + str(self.seed)
-        full_lives = {'ale.lives': 6}
         
         for t in tqdm(range(1, self.experiment_data["ITERATION_LEARNING"] + 1)):
 
@@ -150,7 +149,6 @@ class Experiment(object):
             while not done:
 
                 if option is None:
-                    self.show_render()
                     option = self.agent.choose_option()
 
                 action = option.act()
@@ -161,16 +159,15 @@ class Experiment(object):
                     self.total_reward += reward
                     self.write_reward(t, file_name)
                     self.ATARI_state = self.save_state(obs)
-                    subprocess.Popen(['notify-send', "got a positive reward"])
                     break
                 
                 if end_option:
-                    self.show_render()
                     self.agent.update_agent(obs, option, info['ale.lives'])
                     print("number of options: " + str(len(self.agent.option_list)))
                     option = None
-
-                done = (info != full_lives)
+                    
+                self.show_render()
+                # done = (info != full_lives)
 
         Experiment.write_message("Experiment complete.", file_name)
 
