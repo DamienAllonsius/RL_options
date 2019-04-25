@@ -5,8 +5,7 @@ from abc import ABCMeta, abstractmethod
 
 class OptionAbstract(object):
     """
-    Abstract option class that barely only needs an update function
-    and an act function
+    Abstract option class that barely only needs update, reset and act functions
     """
     __metaclass__ = ABCMeta
 
@@ -16,8 +15,6 @@ class OptionAbstract(object):
         self.terminal_state = None
         self.play = play
         self.number_actions = number_actions
-        # the positive rewards received by the environment
-        self.reward_for_agent = 0
         self.lives = None
 
     def check_end_option(self, new_state):
@@ -36,7 +33,6 @@ class OptionAbstract(object):
               current_state,  # high resolution image
               terminal_state):  # blurred image
 
-        self.reward_for_agent = 0
         self.initial_state = initial_state
         self.current_state = current_state
         self.terminal_state = terminal_state
@@ -88,7 +84,6 @@ class Option(OptionAbstract):
 
         else:
             # Update and compute the rewards
-            self.reward_for_agent += reward
             total_reward = self.compute_total_reward(reward,
                                                      end_option,
                                                      new_state["blurred_state"],
@@ -159,12 +154,6 @@ class OptionExplore(OptionAbstract):
         if self.lives is None:
             self.lives = remaining_lives
 
-        if self.lives > remaining_lives:
-            self.reward_for_agent += self.experiment_data["PENALTY_LOST_LIFE_FOR_OPTIONS"]
-
-        # the option shows a sample of the possible reward
-        # of the state to the agent
-        self.reward_for_agent += reward
         self.lives = remaining_lives
         return self.check_end_option(new_state["blurred_state"])
 

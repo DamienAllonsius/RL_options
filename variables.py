@@ -12,7 +12,6 @@ space = 32
 def return_data(name):
     if name == "refactored":
         data = {"ENV_NAME": 'MontezumaRevenge-v0',
-                "AGENT": "AgentOption",
 
                 "ITERATION_LEARNING": 10000,
                 "LEARNING_RATE": 0.1,
@@ -38,10 +37,10 @@ def return_data(name):
 
                 "REWARD_END_OPTION": 100,
                 "PENALTY_END_OPTION": - 100,
-                "PENALTY_OPTION_ACTION": 0,
+                "PENALTY_OPTION_ACTION": -1,
 
                 "PENALTY_LOST_LIFE_FOR_OPTIONS": - 1000,
-                "PENALTY_LOST_LIFE_FOR_AGENT": -1000,
+                "PENALTY_LOST_LIFE_FOR_AGENT": 0,
                 "PENALTY_AGENT_ACTION": 0,  # should stay 0 for the moment
 
                 "SAVE_STATE": False}
