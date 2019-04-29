@@ -23,8 +23,8 @@ BATCH_SIZE = 32
 MIN_EPSILON = 0.01
 TF_SESSION = None
 
-state_dimension = (84, 84, 3)#(210, 160, 3)
-input_shape_nn = [None, 84, 84, 3]#[None, 210, 160, 3]
+state_dimension =(210, 160, 3) #(84, 84, 3)
+input_shape_nn =[None, 210, 160, 3] #[None, 84, 84, 3]
 
 tf_sess = None
 
